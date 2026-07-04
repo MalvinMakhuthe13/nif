@@ -2,6 +2,7 @@
  * Supabase Client — NIF Platform
  * fumoca.co.za · © Fumoca Technologies
  */
+import 'dotenv/config';
 import WebSocket from 'ws';
 import { createClient } from '@supabase/supabase-js';
 
