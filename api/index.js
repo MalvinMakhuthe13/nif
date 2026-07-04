@@ -5,6 +5,7 @@
  * Every route is real. If something isn't ready, the route returns 501.
  * No fake data anywhere.
  */
+import 'dotenv/config';
 
 import express             from 'express';
 import cors                from 'cors';
