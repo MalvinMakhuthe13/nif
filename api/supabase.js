@@ -14,15 +14,29 @@ if (!SEC && typeof window === 'undefined') throw new Error('SUPABASE_SECRET_KEY 
 
 // Public client — use in browser, subject to RLS
 export const supabasePublic = createClient(URL, PUB, {
-  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-  realtime: { params: { eventsPerSecond: 10 } },
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+  realtime: {
+    transport: WebSocket,
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });
 
 // Admin client — server only, bypasses RLS
 export const supabaseAdmin = createClient(URL, SEC ?? '', {
-  auth: { autoRefreshToken: false, persistSession: false },
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  realtime: {
+    transport: WebSocket,
+  },
 });
-
 // Auth helpers
 export const Auth = {
   signUp:       (email, password, meta={}) => supabasePublic.auth.signUp({ email, password, options:{data:meta} }),
