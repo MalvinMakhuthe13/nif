@@ -3,8 +3,7 @@
  * fumoca.co.za · © Fumoca Technologies
  */
 import 'dotenv/config';
-console.log("cwd:", process.cwd());
-console.log("env path loaded, PUB =", process.env.SUPABASE_PUBLISHABLE_KEY);
+
 
 import WebSocket from 'ws';
 import { createClient } from '@supabase/supabase-js';
