@@ -7,6 +7,8 @@
  */
 import 'dotenv/config';
 
+import path                from 'path';
+import { fileURLToPath }   from 'url';
 import express             from 'express';
 import cors                from 'cors';
 import helmet              from 'helmet';
@@ -22,8 +24,14 @@ import { socialRouter }     from './middleware/social.js';
 import { webhookRouter, dispatchWebhook } from './middleware/webhooks.js';
 import presentationRoutes  from './routes/presentations.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.join(__dirname, '..');
+
 const app = express();
 
+// Serve the website
+app.use(express.static(ROOT));
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
@@ -936,6 +944,12 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT ?? 3001;
+app.get('/', (req, res) => {
+  res.sendFile(path.join(ROOT, 'index.html'));
+});
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(ROOT, 'dashboard', 'index.html'));
+});
 app.listen(PORT, () => console.log(`\n  NIF API · fumoca.co.za → https://api.fumoca.co.za/api/health\n`));
 
 export default app;
