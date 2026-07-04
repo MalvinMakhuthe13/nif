@@ -6,6 +6,8 @@ import 'dotenv/config';
 import WebSocket from 'ws';
 import { createClient } from '@supabase/supabase-js';
 
+console.log("SUPABASE KEY:", process.env.SUPABASE_PUBLISHABLE_KEY);
+
 const URL = process.env.SUPABASE_URL         ?? 'https://ijfimuodpvbuwrspzfra.supabase.co';
 const PUB = process.env.SUPABASE_PUBLISHABLE_KEY;
 const SEC = process.env.SUPABASE_SECRET_KEY;
