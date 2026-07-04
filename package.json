@@ -1,0 +1,29 @@
+{
+  "name": "nif-platform",
+  "version": "1.0.0",
+  "description": "NIF — Neural Interactive Format · fumoca.co.za · © Fumoca Technologies",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node api/index.js",
+    "secrets": "node scripts/generate-secrets.js",
+    "schema": "echo 'Paste scripts/schema.sql into Supabase SQL Editor and run'",
+    "serve": "npx serve . -p 5173",
+    "start": "node api/index.js",
+    "setup-cors": "node scripts/setup-r2-cors.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^10.0.0",
+    "serve": "^14.2.0"
+  }
+}

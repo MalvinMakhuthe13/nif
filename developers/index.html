@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIF Developer Portal · fumoca.co.za</title>
+<meta name="description" content="Encoder licenses, viewer SDK, and API documentation for the NIF format by Fumoca Technologies."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#07070a;--deep:#0d0d12;--surface:#12121a;--surf2:#181820;
+  --rim:rgba(255,255,255,0.06);--rim2:rgba(255,255,255,0.11);
+  --text:#f0eff0;--muted:#72717a;--dim:#2a2a35;
+  --violet:#7b5ef8;--cyan:#2edcdc;--green:#2ed88a;--red:#f04060;--gold:#f0b429;
+  --font-h:'Bebas Neue',sans-serif;
+  --font-b:'Instrument Sans',sans-serif;
+  --font-m:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--void);color:var(--text);font-family:var(--font-b);font-size:15px;line-height:1.6}
+
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,7,10,0.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--rim);
+  padding:0 48px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+}
+.nav-logo{font-family:var(--font-h);font-size:18px;letter-spacing:.1em;display:flex;align-items:center;gap:8px}
+.nav-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--violet);box-shadow:0 0 10px var(--violet)}
+.nav-links{display:flex;gap:4px}
+.nav-link{font-size:13px;font-weight:500;color:var(--muted);padding:6px 12px;border-radius:7px;cursor:pointer;transition:all .15s;text-decoration:none;border:none;background:none}
+.nav-link:hover,.nav-link.active{color:var(--text);background:rgba(255,255,255,0.06)}
+.nav-right{display:flex;align-items:center;gap:10px}
+#auth-status{font-size:12px;color:var(--muted)}
+.btn-sm{font-size:12px;font-weight:600;padding:7px 16px;border-radius:7px;cursor:pointer;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--rim2)}
+.btn-outline:hover{background:rgba(255,255,255,0.06)}
+.btn-primary{background:var(--violet);color:#fff}
+.btn-primary:hover{opacity:.85}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
+
+/* SIDEBAR */
+.sidebar{
+  border-right:1px solid var(--rim);padding:28px 0;
+  position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;
+}
+.sidebar-section{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:0 20px;margin:20px 0 8px}
+.sidebar-section:first-child{margin-top:0}
+.sidebar-link{
+  display:flex;align-items:center;gap:9px;
+  font-size:13px;color:var(--muted);padding:7px 20px;cursor:pointer;
+  transition:all .15s;border:none;background:none;width:100%;text-align:left;
+  border-left:2px solid transparent;
+}
+.sidebar-link:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+.sidebar-link.active{color:var(--text);border-left-color:var(--violet);background:rgba(123,94,248,0.08)}
+.sidebar-link .icon{font-size:14px;width:16px;text-align:center;flex-shrink:0}
+
+/* MAIN CONTENT */
+main{padding:40px 56px;max-width:900px}
+
+/* PANELS */
+.panel{display:none}
+.panel.active{display:block}
+
+/* PAGE TITLE */
+.page-title{font-family:var(--font-h);font-size:48px;letter-spacing:-.01em;margin-bottom:8px;line-height:1}
+.page-sub{font-size:15px;color:var(--muted);margin-bottom:40px;max-width:560px;line-height:1.6}
+
+/* SECTION */
+.section-title{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+
+/* TIER CARDS */
+.tier-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:40px}
+.tier-card{
+  background:var(--surface);border:1px solid var(--rim);border-radius:14px;
+  padding:28px;position:relative;transition:border-color .2s;cursor:default;
+}
+.tier-card:hover{border-color:var(--rim2)}
+.tier-card.featured{border-color:rgba(123,94,248,.35);background:rgba(123,94,248,.05)}
+.tier-badge{
+  position:absolute;top:-10px;left:20px;
+  font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  background:var(--violet);color:#fff;padding:3px 12px;border-radius:100px;
+}
+.tier-name{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tier-price{font-family:var(--font-h);font-size:40px;letter-spacing:-.02em;margin-bottom:4px;display:flex;align-items:baseline;gap:4px}
+.tier-price .cur{font-size:18px;color:var(--muted)}
+.tier-price .per{font-size:13px;color:var(--muted);font-family:var(--font-b);font-weight:400}
+.tier-limit{font-size:12px;color:var(--muted);margin-bottom:16px}
+.tier-features{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:20px}
+.tier-features li{font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:8px}
+.tier-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* CODE BLOCKS */
+.code-block{
+  background:var(--deep);border:1px solid var(--rim);border-radius:10px;
+  padding:20px 24px;margin:12px 0 24px;
+  font-family:var(--font-m);font-size:13px;color:#c4c3d0;
+  overflow-x:auto;line-height:1.7;
+  position:relative;
+}
+.code-block .comment{color:#4a4a60}
+.code-block .keyword{color:var(--violet)}
+.code-block .string{color:var(--cyan)}
+.code-block .number{color:var(--gold)}
+.copy-btn{
+  position:absolute;top:10px;right:10px;
+  font-size:10px;font-weight:600;color:var(--muted);
+  background:var(--surf2);border:1px solid var(--rim);border-radius:5px;
+  padding:4px 10px;cursor:pointer;transition:all .15s;
+}
+.copy-btn:hover{color:var(--text);border-color:var(--rim2)}
+
+/* INFO BOXES */
+.info-box{background:var(--surface);border:1px solid var(--rim);border-radius:10px;padding:16px 20px;margin-bottom:16px;font-size:13px;line-height:1.7}
+.info-box.violet{border-color:rgba(123,94,248,.3);background:rgba(123,94,248,.06)}
+.info-box.cyan{border-color:rgba(46,220,220,.3);background:rgba(46,220,220,.06)}
+.info-box.gold{border-color:rgba(240,180,41,.3);background:rgba(240,180,41,.06)}
+.info-box strong{color:var(--text)}
+
+/* TABLE */
+.spec-table{width:100%;border-collapse:collapse;margin:12px 0 28px;font-size:13px}
+.spec-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rim)}
+.spec-table td{padding:10px 12px;border-bottom:1px solid var(--rim);color:var(--muted);vertical-align:top}
+.spec-table td:first-child{font-family:var(--font-m);font-size:12px;color:var(--text)}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-table tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* API KEY SECTION */
+.key-box{
+  background:var(--surface);border:1px solid var(--rim);border-radius:10px;
+  padding:20px;display:flex;align-items:center;gap:12px;margin-bottom:12px;
+}
+.key-val{font-family:var(--font-m);font-size:13px;flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.key-masked{letter-spacing:.2em;color:var(--muted)}
+
+/* DIVIDER */
+hr{border:none;border-top:1px solid var(--rim);margin:32px 0}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  main{padding:24px 20px;max-width:100%}
+  .tier-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><div class="nav-logo-dot"></div>NIF DEVELOPERS</div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPanel('overview')">Overview</button>
+    <button class="nav-link" onclick="showPanel('encoder')">Encoder License</button>
+    <button class="nav-link" onclick="showPanel('sdk')">Viewer SDK</button>
+    <button class="nav-link" onclick="showPanel('spec')">Spec</button>
+    <button class="nav-link" onclick="showPanel('api')">API</button>
+  </div>
+  <div class="nav-right">
+    <span id="auth-status">Not signed in</span>
+    <a href="/dashboard" class="btn-sm btn-outline">Dashboard</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Getting started</div>
+    <button class="sidebar-link active" onclick="showPanel('overview')"><span class="icon">◈</span> Overview</button>
+    <button class="sidebar-link" onclick="showPanel('quickstart')"><span class="icon">⚡</span> Quick start</button>
+
+    <div class="sidebar-section">Encoder</div>
+    <button class="sidebar-link" onclick="showPanel('encoder')"><span class="icon">🔐</span> License tiers</button>
+    <button class="sidebar-link" onclick="showPanel('encoder-sdk')"><span class="icon">📦</span> Encoder SDK</button>
+    <button class="sidebar-link" onclick="showPanel('cert')"><span class="icon">✦</span> Certificate system</button>
+
+    <div class="sidebar-section">Viewer SDK</div>
+    <button class="sidebar-link" onclick="showPanel('sdk')"><span class="icon">▶</span> SDK license</button>
+    <button class="sidebar-link" onclick="showPanel('embed')"><span class="icon">〈〉</span> Embed API</button>
+    <button class="sidebar-link" onclick="showPanel('sdk-ref')"><span class="icon">📄</span> SDK reference</button>
+
+    <div class="sidebar-section">Format</div>
+    <button class="sidebar-link" onclick="showPanel('spec')"><span class="icon">📐</span> NIF spec v1.0</button>
+    <button class="sidebar-link" onclick="showPanel('chunks')"><span class="icon">⬡</span> Chunk types</button>
+    <button class="sidebar-link" onclick="showPanel('codecs')"><span class="icon">⇄</span> Codecs</button>
+
+    <div class="sidebar-section">Account</div>
+    <button class="sidebar-link" onclick="showPanel('keys')"><span class="icon">🔑</span> API keys</button>
+    <button class="sidebar-link" onclick="showPanel('usage')"><span class="icon">📊</span> Usage</button>
+  </div>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- OVERVIEW -->
+    <div id="panel-overview" class="panel active">
+      <div class="page-title">NIF Developer Portal</div>
+      <p class="page-sub">Build with the Neural Interactive Format — the 4D spatial capture standard by Fumoca Technologies.</p>
+
+      <div class="info-box violet">
+        <strong>Reading NIF files is free.</strong><br>
+        Any application may implement a NIF reader using the public spec. The reference reader
+        (<code>NIFSpec.js</code>) is MIT-licensed for the reader half.
+        Writing NIF files requires an encoder license. Displaying NIF files with the full viewer SDK requires a viewer SDK license.
+      </div>
+
+      <div class="section-title" style="margin-top:32px;">What you can build</div>
+      <table class="spec-table">
+        <thead><tr><th>Use case</th><th>License needed</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>Read/parse a .nif file</td><td>None</td><td>Free</td></tr>
+          <tr><td>Display NIF files (basic reader)</td><td>None (with watermark)</td><td>Free</td></tr>
+          <tr><td>Display NIF files (viewer SDK)</td><td>Viewer SDK license</td><td>From R2,000/month</td></tr>
+          <tr><td>Create NIF files in your app</td><td>Encoder license</td><td>From R500/month</td></tr>
+          <tr><td>Embed NIF viewer on a client site</td><td>Embed license key</td><td>Issued from dashboard</td></tr>
+          <tr><td>Vendor chunk type range</td><td>Vendor registration</td><td>Contact us</td></tr>
+        </tbody>
+      </table>
+
+      <div class="section-title">File format at a glance</div>
+      <div class="code-block">
+<span class="comment">// NIF wire format</span>
+<span class="comment">// [HEADER: 256 bytes fixed]</span>
+<span class="comment">// [CHUNK_0: 16-byte header + data]</span>
+<span class="comment">// [CHUNK_1: 16-byte header + data]</span>
+<span class="comment">// ...</span>
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<span class="comment">// All integers big-endian. Floats IEEE-754.</span>
+<span class="comment">// Magic bytes: 0x4E 0x49 0x46 0x00 ('NIF\0')</span>
+<span class="comment">// Extension: .nif  ·  MIME: model/x-nif</span>
+</div>
+
+      <div class="section-title">Contact</div>
+      <p style="font-size:14px;color:var(--muted);line-height:1.8;">
+        Encoder licenses, viewer SDK, vendor registration:<br>
+        <a href="mailto:hello@fumoca.co.za" style="color:var(--cyan)">hello@fumoca.co.za</a>
+      </p>
+    </div>
+
+    <!-- ENCODER LICENSE -->
+    <div id="panel-encoder" class="panel">
+      <div class="page-title">Encoder Licenses</div>
+      <p class="page-sub">Create NIF files from your own pipeline. Each tier includes the encoder SDK, signed certificate issuance, and access to the fumoca encoder API.</p>
+
+      <div class="tier-grid">
+        <div class="tier-card">
+          <div class="tier-name">Developer</div>
+          <div class="tier-price"><span class="cur">R</span>500<span class="per">/month</span></div>
+          <div class="tier-limit">Up to 1,000 NIF files/month</div>
+          <ul class="tier-features">
+            <li>Encoder SDK + certificate issuance</li>
+            <li>Watermark-free viewer for certified files</li>
+            <li>Dashboard usage analytics</li>
+            <li>Email support</li>
+          </ul>
+          <a href="mailto:hello@fumoca.co.za?subject=Encoder license — Developer" class="btn-sm btn-outline" style="width:100%;justify-content:center;">Contact to apply</a>
+        </div>
+        <div class="tier-card featured">
+          <div class="tier-badge">Most popular</div>
+          <div class="tier-name">Commercial</div>
+          <div class="tier-price"><span class="cur">R</span>5 000<span class="per">/month</span></div>
+          <div class="tier-limit">Up to 50,000 NIF files/month</div>
+          <ul class="tier-features">
+            <li>Encoder SDK + certificate issuance</li>
+            <li>White-label viewer SDK access</li>
+            <li>Priority encoding queue</li>
+            <li>Custom vertical schema support</li>
+            <li>Priority support + SLA</li>
+          </ul>
+          <a href="mailto:hello@fumoca.co.za?subject=Encoder license — Commercial" class="btn-sm btn-primary" style="width:100%;justify-content:center;">Contact to apply</a>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">OEM</div>
+          <div class="tier-price" style="font-size:28px;">Negotiated</div>
+          <div class="tier-limit">Hardware manufacturers, annual license</div>
+          <ul class="tier-features">
+            <li>Native NIF capture on device</li>
+            <li>Baked encoder certificate in firmware</li>
+            <li>Volume pricing per device shipped</li>
+            <li>Technical integration support</li>
+          </ul>
+          <a href="mailto:hello@fumoca.co.za?subject=OEM encoder license" class="btn-sm btn-outline" style="width:100%;justify-content:center;">Contact us</a>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">Enterprise</div>
+          <div class="tier-price" style="font-size:28px;">Custom</div>
+          <div class="tier-limit">Unlimited files, dedicated infrastructure</div>
+          <ul class="tier-features">
+            <li>Unlimited NIF file creation</li>
+            <li>Dedicated GPU reconstruction queue</li>
+            <li>Custom chunk type registration</li>
+            <li>Full API access + webhooks</li>
+            <li>24/7 SLA, dedicated account manager</li>
+          </ul>
+          <a href="mailto:hello@fumoca.co.za?subject=Enterprise encoder license" class="btn-sm btn-outline" style="width:100%;justify-content:center;">Contact us</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CERT SYSTEM -->
+    <div id="panel-cert" class="panel">
+      <div class="page-title">Certificate System</div>
+      <p class="page-sub">Every NIF file contains a CERT chunk that identifies the encoder and its license tier. Viewers check this chunk to decide whether to show the fumoca watermark.</p>
+
+      <div class="info-box gold">
+        <strong>How enforcement works:</strong> The CERT chunk (type 0x0020) is embedded at production time. It contains your encoder ID, license tier, and an HMAC-SHA256 signature using a key issued exclusively to your encoder. Fumoca viewers verify the signature before rendering without a watermark.
+      </div>
+
+      <div class="section-title">Certificate layout</div>
+      <table class="spec-table">
+        <thead><tr><th>Bytes</th><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>tier</td><td>ENCODER_TIER constant</td></tr>
+          <tr><td>1–32</td><td>encoderId</td><td>ASCII encoder identifier (issued by fumoca)</td></tr>
+          <tr><td>33–64</td><td>licenseeId</td><td>ASCII licensee name</td></tr>
+          <tr><td>65–68</td><td>issuedAt</td><td>Unix timestamp (uint32 BE)</td></tr>
+          <tr><td>69–72</td><td>expiresAt</td><td>Unix timestamp, 0 = never (uint32 BE)</td></tr>
+          <tr><td>73–104</td><td>sig</td><td>HMAC-SHA256 of bytes [0..72]</td></tr>
+          <tr><td>105–127</td><td>reserved</td><td>Zero-padded</td></tr>
+        </tbody>
+      </table>
+
+      <div class="section-title">Signing a certificate (encoder SDK)</div>
+      <div class="code-block">
+<span class="comment">// JavaScript — encoder SDK</span>
+<span class="keyword">import</span> { NIFCertificate, ENCODER_TIER } <span class="keyword">from</span> <span class="string">'@fumoca/nif-encoder'</span>;
+
+<span class="keyword">const</span> cert = <span class="keyword">await</span> NIFCertificate.sign({
+  tier:       ENCODER_TIER.DEVELOPER,
+  encoderId:  <span class="string">'YOUR_ENCODER_ID'</span>,   <span class="comment">// issued by fumoca</span>
+  licenseeId: <span class="string">'Your Company Name'</span>,
+  issuedAt:   Math.floor(Date.now() / <span class="number">1000</span>),
+  expiresAt:  <span class="number">0</span>,                     <span class="comment">// 0 = never</span>
+}, YOUR_HMAC_KEY);                    <span class="comment">// 32-byte Uint8Array, issued by fumoca</span>
+
+<span class="comment">// Embed in your NIF file</span>
+writer.add(CHUNK.CERT, cert.toUint8Array(), CODEC.RAW);
+<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+      <div class="section-title">Verifying a certificate (reader)</div>
+      <div class="code-block">
+<span class="comment">// JavaScript — reading a NIF file</span>
+<span class="keyword">import</span> { NIFReader, ENCODER_TIER } <span class="keyword">from</span> <span class="string">'https://fumoca.co.za/sdk/nif-spec.js'</span>;
+
+<span class="keyword">const</span> reader = <span class="keyword">new</span> NIFReader(arrayBuffer);
+<span class="keyword">const</span> tier   = reader.getEncoderTier();
+
+<span class="keyword">if</span> (tier === ENCODER_TIER.UNCERTIFIED) {
+  <span class="comment">// Show watermark or restrict features</span>
+  showWatermark();
+}
+<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </div>
+
+    <!-- VIEWER SDK -->
+    <div id="panel-sdk" class="panel">
+      <div class="page-title">Viewer SDK</div>
+      <p class="page-sub">The fumoca viewer SDK renders NIF files with the full cinematic experience — EWA splatting, 4-stage transition, layer system, depth-of-field, parallax, and WebGL2 optimisation.</p>
+
+      <div class="info-box cyan">
+        <strong>The public spec lets you build a basic reader.</strong> The viewer SDK gives you the production-grade renderer, the cinematic entry transition, the scene editor integration, and all vertical-specific features — without months of WebGL development.
+      </div>
+
+      <div class="section-title" style="margin-top:28px;">SDK tiers</div>
+      <table class="spec-table">
+        <thead><tr><th>Tier</th><th>Price</th><th>Views/month</th><th>Features</th></tr></thead>
+        <tbody>
+          <tr><td>Free (watermarked)</td><td>Free</td><td>Unlimited</td><td>Full renderer, fumoca watermark</td></tr>
+          <tr><td>Standard</td><td>R2,000/month</td><td>10M</td><td>White-label, custom domain, analytics</td></tr>
+          <tr><td>Enterprise</td><td>Custom</td><td>Unlimited</td><td>SLA, priority support, custom verticals</td></tr>
+        </tbody>
+      </table>
+
+      <a href="mailto:hello@fumoca.co.za?subject=Viewer SDK license" class="btn-sm btn-primary" style="margin-bottom:32px;">Request SDK license</a>
+    </div>
+
+    <!-- EMBED API -->
+    <div id="panel-embed" class="panel">
+      <div class="page-title">Embed API</div>
+      <p class="page-sub">Add an interactive NIF viewer to any webpage with a single script tag.</p>
+
+      <div class="section-title">Basic embed</div>
+      <div class="code-block">
+<span class="comment">&lt;!-- Add to your page --&gt;</span>
+&lt;<span class="keyword">div</span> data-nif-id=<span class="string">"YOUR_NIF_UUID"</span>
+     data-nif-token=<span class="string">"YOUR_LICENSE_KEY"</span>
+     style=<span class="string">"width:100%;aspect-ratio:16/9"</span>&gt;
+&lt;/<span class="keyword">div</span>&gt;
+&lt;<span class="keyword">script</span> src=<span class="string">"https://fumoca.co.za/sdk/embed/nif-viewer.js"</span>&gt;&lt;/<span class="keyword">script</span>&gt;
+<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+      <div class="section-title">JavaScript API</div>
+      <div class="code-block">
+<span class="keyword">import</span> { NIFViewer } <span class="keyword">from</span> <span class="string">'https://fumoca.co.za/sdk/embed/nif-viewer.js'</span>;
+
+<span class="keyword">const</span> viewer = <span class="keyword">new</span> NIFViewer(container, {
+  nifId:      <span class="string">'YOUR_NIF_UUID'</span>,
+  licenseKey: <span class="string">'YOUR_LICENSE_KEY'</span>,
+  api:        <span class="string">'https://api.fumoca.co.za'</span>,
+  autoplay:   <span class="keyword">true</span>,
+});
+
+<span class="keyword">await</span> viewer.load();
+
+<span class="comment">// Events</span>
+viewer.onReady  = ({ nifId, vertical, gaussianCount }) => {};
+viewer.onError  = (err) => {};
+
+<span class="comment">// Methods</span>
+viewer.getEncoderTier();   <span class="comment">// ENCODER_TIER constant</span>
+viewer.setLayer(<span class="string">'foreground'</span>);
+viewer.enableParallax(<span class="keyword">true</span>);
+viewer.destroy();
+<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+      <div class="section-title">Data attributes</div>
+      <table class="spec-table">
+        <thead><tr><th>Attribute</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>data-nif-id</td><td>Yes</td><td>NIF file UUID from the fumoca dashboard</td></tr>
+          <tr><td>data-nif-token</td><td>Yes</td><td>License key issued from the dashboard</td></tr>
+          <tr><td>data-nif-license</td><td>No</td><td>Alias for data-nif-token (either works)</td></tr>
+          <tr><td>data-nif-autoplay</td><td>No</td><td>"true" to skip the tap-to-start screen</td></tr>
+          <tr><td>data-nif-api</td><td>No</td><td>API base URL (default: api.fumoca.co.za)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SPEC -->
+    <div id="panel-spec" class="panel">
+      <div class="page-title">NIF Spec v1.0</div>
+      <p class="page-sub">The complete public specification for the NIF format. Reading is free. Writing requires an encoder license.</p>
+      <div class="info-box violet">
+        Full specification: <a href="/docs/NIF_SPEC_v1.0.md" style="color:var(--cyan)">NIF_SPEC_v1.0.md</a><br>
+        Reference reader: <a href="/sdk/nif-spec.js" style="color:var(--cyan)">fumoca.co.za/sdk/nif-spec.js</a> (MIT licence, reader half only)
+      </div>
+      <div class="section-title" style="margin-top:28px;">Chunk type registry</div>
+      <table class="spec-table">
+        <thead><tr><th>Hex</th><th>Name</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x0002</td><td>PROXY_VIDEO</td><td>H.264/H.265 proxy video — plays anywhere</td></tr>
+          <tr><td>0x0003</td><td>KEYFRAME_GEO</td><td>Depth field (14 floats per point)</td></tr>
+          <tr><td>0x0007</td><td>DEPTH_MAP</td><td>float16 metric depth, H×W</td></tr>
+          <tr><td>0x0008</td><td>ALPHA_MASK</td><td>uint8 segmentation mask, H×W</td></tr>
+          <tr><td>0x0009</td><td>LAYER_GEO</td><td>Named layers (fg/mg/bg/segments)</td></tr>
+          <tr><td>0x0010</td><td>SPATIAL_AUDIO</td><td>Ambisonics B-format + HRTF</td></tr>
+          <tr><td>0x0011</td><td>INTERACTION</td><td>Clickable objects + triggers</td></tr>
+          <tr><td>0x0013</td><td>EDIT_HISTORY</td><td>Non-destructive edit stack</td></tr>
+          <tr><td>0x0014</td><td>PRINT_EXPORT</td><td>Pre-computed STL</td></tr>
+          <tr><td>0x0020</td><td>CERT</td><td>Encoder certificate + tier</td></tr>
+          <tr><td>0x8000–0xFFFF</td><td>VENDOR</td><td>Licensed third-party extensions</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- API KEYS -->
+    <div id="panel-keys" class="panel">
+      <div class="page-title">API Keys</div>
+      <p class="page-sub">Manage your encoder and viewer SDK keys.</p>
+      <div class="info-box gold">Sign in with your fumoca account to view and manage API keys.</div>
+      <div id="keys-content" style="display:none">
+        <div class="section-title">Encoder API key</div>
+        <div class="key-box">
+          <div class="key-val key-masked" id="enc-key">••••••••••••••••••••••••••••••••</div>
+          <button class="btn-sm btn-outline" onclick="toggleKey('enc-key', this)">Show</button>
+          <button class="btn-sm btn-outline" onclick="copyKey('enc-key')">Copy</button>
+        </div>
+        <div class="section-title">Viewer SDK key</div>
+        <div class="key-box">
+          <div class="key-val key-masked" id="sdk-key">••••••••••••••••••••••••••••••••</div>
+          <button class="btn-sm btn-outline" onclick="toggleKey('sdk-key', this)">Show</button>
+          <button class="btn-sm btn-outline" onclick="copyKey('sdk-key')">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- USAGE -->
+    <div id="panel-usage" class="panel">
+      <div class="page-title">Usage</div>
+      <p class="page-sub">Track your NIF file creation and viewer SDK usage against your license limits.</p>
+      <div class="info-box violet">Usage data is synced from the fumoca API. Sign in to view your current period statistics.</div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const cfg = window.NIF_CONFIG ?? {};
+const SBURL = cfg.supabaseUrl ?? '';
+const SBKEY = cfg.supabaseAnonKey ?? '';
+let sb = null;
+if (SBURL && SBKEY) sb = supabase.createClient(SBURL, SBKEY);
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+async function initAuth() {
+  if (!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    document.getElementById('auth-status').textContent = session.user.email;
+    document.getElementById('keys-content')?.style && (document.getElementById('keys-content').style.display = 'block');
+  }
+}
+initAuth();
+
+// ── Panel navigation ──────────────────────────────────────────────────────────
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+
+  const panel = document.getElementById('panel-' + id);
+  if (panel) panel.classList.add('active');
+
+  document.querySelectorAll(`[onclick*="'${id}'"]`).forEach(el => el.classList.add('active'));
+}
+
+// ── Code copy ─────────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const block = btn.parentElement;
+  const text  = block.innerText.replace('Copy\n','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function toggleKey(id, btn) {
+  const el = document.getElementById(id);
+  if (el.classList.contains('key-masked')) {
+    el.classList.remove('key-masked');
+    btn.textContent = 'Hide';
+  } else {
+    el.classList.add('key-masked');
+    btn.textContent = 'Show';
+  }
+}
+
+function copyKey(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent.trim());
+}
+
+// Parse hash for direct panel links
+const hash = location.hash.slice(1);
+if (hash) showPanel(hash);
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+# NIF Reconstruction Pipeline — Python dependencies
+# Install on Kaggle: pip install -r requirements.txt
+# or cell by cell (Kaggle pre-installs torch/torchvision)
+
+# Core ML
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Gaussian splatting — CUDA rasteriser
+gsplat>=1.0.0
+
+# Depth estimation — DepthAnything v2 (metric monocular depth from single image)
+# Install: pip install depth-anything-v2
+# Fallback: torch.hub MiDaS (auto-downloaded)
+huggingface-hub>=0.23.0
+
+# Background removal — BiRefNet / U2-Net (product matting, person extraction)
+rembg[gpu]>=2.0.57          # GPU-accelerated; use rembg (no [gpu]) on CPU-only
+
+# Segmentation — SAM 2 (Segment Anything Model 2 by Meta)
+# Install: pip install git+https://github.com/facebookresearch/sam2.git
+# Falls back to single-segment if unavailable
+
+# Storage
+boto3>=1.34.0
+botocore>=1.34.0
+
+# HTTP
+requests>=2.31.0
+
+# Image/video — ffmpeg must be installed separately
+Pillow>=10.0.0
+imageio[ffmpeg]>=2.33.0
+
+# Supabase
+supabase>=2.4.0
+
+# Numerics
+numpy>=1.24.0
+scipy>=1.11.0
+
+# 3D print pipeline
+trimesh>=4.0.0
+scikit-image>=0.21.0
+manifold3d>=2.4.0

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>3D Print Export · NIF Platform · fumoca.co.za</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="../../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--bg2:#0c0c12;--bg3:#13131c;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0f8;--text2:#8888aa;--text3:#44445a;
+  --accent:#7c6dfa;--accent2:#a594ff;
+  --gold:#f0c060;--green:#3ddc97;--red:#ff5566;--amber:#ffaa44;
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:10px;--r2:16px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--font);cursor:pointer}
+
+/* Nav */
+nav{position:sticky;top:0;z-index:100;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(5,5,8,0.9);backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border)}
+.nav-logo{font-size:15px;font-weight:800;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px}
+.nav-logo-sub{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:0.2em;text-transform:uppercase}
+
+/* Layout */
+.page{max-width:1100px;margin:0 auto;padding:40px 32px}
+@media(max-width:700px){.page{padding:24px 16px}}
+
+/* Header */
+.page-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.page-title{font-size:32px;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+
+/* NIF selector */
+.nif-select-wrap{margin-bottom:32px}
+.nif-select-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px;display:block}
+.nif-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px}
+.nif-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all 0.2s}
+.nif-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.nif-card.selected{border-color:var(--accent);background:rgba(124,109,250,0.06)}
+.nif-thumb{height:110px;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--bg3)}
+.nif-info{padding:10px 12px}
+.nif-title{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.nif-meta{font-size:10px;color:var(--text3)}
+
+/* Template grid */
+.templates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+@media(max-width:800px){.templates-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.templates-grid{grid-template-columns:1fr}}
+.edit-panel-inner{background:var(--bg2);border:0.5px solid var(--border2);border-radius:12px;padding:18px 20px}
+.ep-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.ep-row{margin-bottom:14px}
+.ep-row label{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px}
+.ep-val{font-family:var(--mono);font-size:12px;color:var(--accent2);font-weight:600}
+.ep-row input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.ep-hint{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.55}
+.ep-note{font-size:11px;color:var(--text2);background:rgba(124,109,250,0.08);border:0.5px solid rgba(124,109,250,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;line-height:1.6}
+
+.tmpl-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);padding:0;overflow:hidden;cursor:pointer;transition:all 0.2s;position:relative}
+.tmpl-card:hover:not(.disabled){border-color:var(--border2);transform:translateY(-2px)}
+.tmpl-card.selected{border-color:var(--accent);background:rgba(124,109,250,0.06)}
+.tmpl-card.disabled{opacity:0.5;cursor:not-allowed}
+.tmpl-card.ready{border-color:rgba(61,220,151,0.35)}
+
+.tmpl-visual{height:140px;display:flex;align-items:center;justify-content:center;background:var(--bg3);position:relative;overflow:hidden}
+.tmpl-icon{font-size:52px;opacity:0.6}
+.tmpl-ready-badge{position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(61,220,151,0.15);color:var(--green);border:0.5px solid rgba(61,220,151,0.3);text-transform:uppercase;letter-spacing:0.06em}
+.tmpl-select-indicator{position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.15s}
+.tmpl-card.selected .tmpl-select-indicator{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.tmpl-body{padding:14px 16px}
+.tmpl-name{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.tmpl-desc{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.tmpl-specs{display:flex;flex-wrap:wrap;gap:5px}
+.tmpl-spec{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text3);font-family:var(--mono)}
+
+/* Size control */
+.size-control{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);padding:20px 24px;margin-bottom:28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.size-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)}
+.size-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.size-btn{padding:6px 14px;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.size-btn.active{background:rgba(124,109,250,0.12);border-color:var(--accent);color:var(--accent2)}
+.size-custom{display:flex;align-items:center;gap:8px}
+.size-input{width:72px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-family:var(--mono);font-size:12px;outline:none;text-align:center}
+.size-input:focus{border-color:var(--accent)}
+
+/* Quality selector */
+.quality-row{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.quality-btn{flex:1;min-width:140px;padding:14px 16px;border-radius:var(--r2);border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font);text-align:left;transition:all 0.15s}
+.quality-btn.active{border-color:var(--accent);background:rgba(124,109,250,0.06);color:var(--text)}
+.quality-btn:hover:not(.active){border-color:var(--border2)}
+.qb-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.qb-res{font-family:var(--mono);font-size:10px;color:var(--accent2);margin-bottom:4px}
+.qb-desc{font-size:11px;color:var(--text2)}
+
+/* Submit */
+.submit-area{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:40px}
+.btn-generate{padding:13px 28px;border-radius:var(--r2);background:var(--gold);color:#000;border:none;font-family:var(--font);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;transition:all 0.15s}
+.btn-generate:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+.btn-generate:disabled{opacity:0.4;cursor:not-allowed}
+.submit-info{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* Progress card */
+.progress-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);padding:24px;margin-bottom:32px;display:none}
+.progress-card.visible{display:block}
+.pc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.pc-title{font-size:14px;font-weight:700}
+.pc-pct{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.progress-bar-track{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.progress-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),#ffdd88);transition:width 0.6s}
+.pc-steps{display:flex;flex-direction:column;gap:8px}
+.pc-step{display:flex;align-items:center;gap:10px;font-size:12px}
+.step-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.step-dot.done{background:var(--green)}
+.step-dot.active{background:var(--gold);animation:pulse 1s ease-in-out infinite}
+.step-dot.pending{background:var(--bg3);border:0.5px solid var(--border2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pc-template-badge{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(240,192,96,0.12);color:var(--gold);border:0.5px solid rgba(240,192,96,0.25);font-family:var(--mono);margin-left:auto}
+
+/* Results section */
+.results-section{margin-bottom:40px}
+.results-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);margin-bottom:16px}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+
+.result-card{background:var(--bg2);border:0.5px solid rgba(61,220,151,0.25);border-radius:var(--r2);overflow:hidden;transition:border-color 0.2s}
+.result-card:hover{border-color:rgba(61,220,151,0.5)}
+.rc-thumb{height:160px;background:var(--bg3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.rc-icon{font-size:56px;opacity:0.25}
+.rc-badge{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(61,220,151,0.15);color:var(--green);border:0.5px solid rgba(61,220,151,0.3);font-weight:700;text-transform:uppercase;letter-spacing:0.06em}
+.rc-body{padding:16px}
+.rc-name{font-size:15px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.rc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.rc-stat{background:var(--bg3);border-radius:6px;padding:7px 10px}
+.rc-stat-val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text)}
+.rc-stat-key{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:1px}
+.rc-printer{font-size:11px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.rc-actions{display:flex;gap:8px}
+.btn-download{flex:1;padding:9px;border-radius:8px;background:var(--gold);color:#000;border:none;font-family:var(--font);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s}
+.btn-download:hover{filter:brightness(1.08)}
+.btn-view{padding:9px 14px;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;transition:all 0.15s}
+.btn-view:hover{border-color:var(--border);color:var(--text)}
+
+/* Info boxes */
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:40px}
+@media(max-width:700px){.info-grid{grid-template-columns:1fr}}
+.info-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);padding:20px}
+.info-box-icon{font-size:24px;margin-bottom:12px}
+.info-box-title{font-size:13px;font-weight:700;margin-bottom:6px}
+.info-box-desc{font-size:12px;color:var(--text2);line-height:1.7}
+
+/* Shared utils */
+.spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,0.2);border-top-color:#000;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp 0.35s ease both}
+.empty{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:0.3}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <a href="/">NIF ✦</a>
+    <span style="color:var(--border2)">·</span>
+    <span style="font-size:13px;color:var(--text2);font-weight:500">3D Print Export</span>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="/dashboard" style="padding:7px 14px;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-weight:600">← Dashboard</a>
+  </div>
+</nav>
+
+<div class="page fade-up">
+
+  <!-- Header -->
+  <div class="page-tag">3D Print Pipeline</div>
+  <div class="page-title">Print your NIF as a physical object</div>
+  <div class="page-sub">Select a NIF file, choose your product type, set the size. The AI extracts a watertight mesh from the scene's depth data and prepares a print-ready STL — hollow, supported, correctly oriented.</div>
+
+  <!-- Info boxes -->
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="info-box-icon">🔩</div>
+      <div class="info-box-title">FDM (PLA / PETG)</div>
+      <div class="info-box-desc">For figurines, busts and bobbleheads over 50mm. Any desktop printer. 0.1mm layer height recommended. Supports generated automatically.</div>
+    </div>
+    <div class="info-box">
+      <div class="info-box-icon">🧪</div>
+      <div class="info-box-title">Resin (LCD / DLP)</div>
+      <div class="info-box-desc">For keychains, miniatures and coins under 50mm. Far more detail. Works on Anycubic Photon, Elegoo Saturn, Bambu.</div>
+    </div>
+    <div class="info-box">
+      <div class="info-box-icon">📦</div>
+      <div class="info-box-title">Send to print service</div>
+      <div class="info-box-desc">Download the STL and upload to JLC3DP, Craftcloud, Shapeways, or your local print shop. We calculate material weight for pricing.</div>
+    </div>
+  </div>
+
+  <!-- NIF selector -->
+  <div class="nif-select-wrap">
+    <span class="nif-select-label">Select a NIF file to print</span>
+    <div class="nif-grid" id="nif-grid">
+      <div class="empty"><div class="empty-icon">◉</div>Loading your files…</div>
+    </div>
+  </div>
+
+  <!-- Captured dimensions panel — shown after NIF selected -->
+  <div id="dimensions-panel" style="display:none;margin-bottom:24px;
+    background:var(--bg3);border:0.5px solid var(--border);border-radius:12px;padding:18px 20px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--accent2);margin-bottom:14px;">✦ Captured dimensions</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Height</div>
+        <div id="dim-height" style="font-family:monospace;font-size:20px;font-weight:700;color:var(--text)">—</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">metres</div>
+      </div>
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Width</div>
+        <div id="dim-width" style="font-family:monospace;font-size:20px;font-weight:700;color:var(--text)">—</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">metres</div>
+      </div>
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Depth</div>
+        <div id="dim-depth" style="font-family:monospace;font-size:20px;font-weight:700;color:var(--text)">—</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">metres</div>
+      </div>
+    </div>
+    <!-- Scale calibration -->
+    <div style="background:rgba(62,207,207,0.06);border:0.5px solid rgba(62,207,207,0.2);
+      border-radius:8px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--accent2);font-weight:600;margin-bottom:6px;">
+        Scale calibration (optional but recommended)
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.6;">
+        Enter the real-world height of your subject for precise millimetre-accurate prints.
+        Leave blank to use the pipeline's depth estimate.
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text2);">Subject height:</span>
+        <input type="number" id="calib-height" placeholder="e.g. 1.75" step="0.01" min="0.1" max="10"
+          style="width:88px;background:var(--bg2);border:0.5px solid var(--border);
+            color:var(--text);border-radius:6px;padding:6px 10px;font-size:13px;"
+          oninput="applyCalibratedScale(+this.value)"/>
+        <span style="font-size:12px;color:var(--text3);">metres</span>
+        <span id="calib-ratio" style="font-size:11px;color:var(--accent2);display:none;
+          background:rgba(62,207,207,0.1);padding:3px 10px;border-radius:100px;"></span>
+      </div>
+    </div>
+    <!-- Print output dimensions -->
+    <div id="print-dimensions" style="margin-top:12px;padding:12px;background:var(--bg2);
+      border:0.5px solid var(--border);border-radius:8px;display:none;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;letter-spacing:.04em;
+        text-transform:uppercase;">Print output at selected height</div>
+      <div style="display:flex;gap:20px;font-size:13px;flex-wrap:wrap;">
+        <span>H: <strong id="print-h" style="color:var(--text)">—</strong> mm</span>
+        <span>W: <strong id="print-w" style="color:var(--text)">—</strong> mm</span>
+        <span>D: <strong id="print-d" style="color:var(--text)">—</strong> mm</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);">
+        Estimated material:
+        <strong id="est-material" style="color:var(--text2)">—</strong> ·
+        Approx. weight: <strong id="est-weight" style="color:var(--text2)">—</strong> g ·
+        Est. print time: <strong id="est-time" style="color:var(--text2)">—</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template selector -->
+  <div id="template-section" style="display:none">
+    <div class="nif-select-label" style="margin-bottom:14px">Choose your product type</div>
+    <div class="templates-grid" id="templates-grid"></div>
+    <!-- Per-template edit options — shown when a template is selected -->
+    <div id="edit-panel" style="display:none;margin-bottom:24px"></div>
+
+    <!-- Size -->
+    <div class="size-control">
+      <div>
+        <div class="size-label" style="margin-bottom:6px">Print height</div>
+        <div style="font-size:11px;color:var(--text3)">Recommended for each product type shown above</div>
+      </div>
+      <div class="size-buttons" id="size-buttons"></div>
+      <div class="size-custom">
+        <span style="font-size:12px;color:var(--text2)">Custom:</span>
+        <input class="size-input" type="number" id="size-custom" min="20" max="400" placeholder="120"/>
+        <span style="font-size:12px;color:var(--text3)">mm</span>
+      </div>
+    </div>
+
+    <!-- Quality -->
+    <div class="nif-select-label" style="margin-bottom:10px">Mesh quality</div>
+    <div class="quality-row" id="quality-row">
+      <button class="quality-btn active" data-res="128" onclick="selectQuality(this)">
+        <div class="qb-name">Standard</div>
+        <div class="qb-res">128³ voxels</div>
+        <div class="qb-desc">~2 min · Good for figurines & busts</div>
+      </button>
+      <button class="quality-btn" data-res="192" onclick="selectQuality(this)">
+        <div class="qb-name">High</div>
+        <div class="qb-res">192³ voxels</div>
+        <div class="qb-desc">~5 min · Better facial detail</div>
+      </button>
+      <button class="quality-btn" data-res="256" onclick="selectQuality(this)">
+        <div class="qb-name">Ultra</div>
+        <div class="qb-res">256³ voxels</div>
+        <div class="qb-desc">~10 min · Resin / coin quality</div>
+      </button>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-area">
+      <button class="btn-generate" id="generate-btn" disabled onclick="startPrint()">
+        <span>⬡ Generate STL</span>
+        <span id="generate-btn-sub" style="font-size:11px;font-weight:500;opacity:0.7">Select templates first</span>
+      </button>
+      <div class="submit-info" id="submit-info">
+        Select at least one product type above, then click Generate.<br/>
+        The GPU worker will process your request — usually 2–10 minutes.
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-card" id="progress-card">
+      <div class="pc-header">
+        <span class="pc-title" id="pc-title">Preparing…</span>
+        <span class="pc-pct" id="pc-pct">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="pc-bar" style="width:0%"></div>
+      </div>
+      <div class="pc-steps" id="pc-steps"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section" style="display:none">
+    <div class="results-title">Your print-ready STL files</div>
+    <div class="results-grid" id="results-grid"></div>
+  </div>
+
+</div>
+
+<script>
+const SB_URL = (window.NIF_CONFIG?.supabaseUrl) ?? 'https://toujfhriwgcpsqmqrqar.supabase.co';
+const SB_KEY = (window.NIF_CONFIG?.supabaseAnonKey) ?? 'sb_publishable_vYSpMZ91mf_uf6OPjZYbKA_5TInoYH-';
+const sb     = supabase.createClient(SB_URL, SB_KEY);
+const API = (window.NIF_CONFIG?.apiBase) ?? 'https://api.fumoca.co.za/api';
+
+
+
+const VERT_ICONS = {
+  automotive:'🚗',fashion:'👗',property:'🏠',mining:'⛏️',agriculture:'🌾',generic:'✦',education:'📚'
+};
+
+const TEMPLATES = {
+  figurine:  { icon:'🧍', name:'Figurine',         desc:'Full-body, hollow with base',              height:120, specs:['120mm default','Hollow 2.5mm wall','Base included','FDM / Resin'] },
+  memory:    { icon:'💝', name:'Memory Figurine',   desc:'Keepsake — weddings, couples, milestone',  height:150, specs:['150mm default','Hollow 3mm wall','Inscription base','FDM / Resin'] },
+  bobblehead:{ icon:'😄', name:'Bobblehead',        desc:'Big head on small body, spring neck',      height:100, specs:['100mm default','Spring neck socket','Base included','FDM'] },
+  bust:      { icon:'🏺', name:'Bust',              desc:'Head & shoulders with pedestal',           height:150, specs:['150mm default','Hollow','Pedestal','FDM / Resin'] },
+  statue:    { icon:'🏆', name:'Portrait Statue',   desc:'Large display — desk, shelf, trophy',      height:200, specs:['200mm default','Hollow 4mm wall','Wide base','FDM'] },
+  miniature: { icon:'⚔️', name:'Miniature',         desc:'Tabletop gaming scale (32mm)',             height:32,  specs:['32mm default','Solid','0.05mm layer recommended','Resin'] },
+  keychain:  { icon:'🔑', name:'Keychain',          desc:'Head medallion with keyring hole',         height:45,  specs:['45mm default','Keyring hole ⌀4mm','Solid','Resin'] },
+  ornament:  { icon:'🎄', name:'Hanging Ornament',  desc:'Tree, mirror, or wall hanging',            height:60,  specs:['60mm default','Hollow','Flat back','Hook hole','Resin'] },
+  coin:      { icon:'🪙', name:'Portrait Coin',     desc:'Low-relief medallion / keepsake',          height:40,  specs:['40mm diameter','5mm depth','Solid','Resin'] },
+};
+
+const PRINT_STEPS = [
+  'Loading NIF depth data',
+  'Building density grid',
+  'Marching cubes extraction',
+  'Mesh repair & manifold fix',
+  'Taubin smoothing',
+  'Orientation & overhang optimisation',
+  'Scaling to target size',
+  'Adding base / keyring hole',
+  'Hollowing with escape holes',
+  'Exporting STL',
+];
+
+let session    = null;
+let token      = null;
+let files      = [];
+let selectedNif= null;
+let selectedTmpls = new Set();
+let selectedSize  = null;
+let selectedRes   = 128;
+let activeJobId   = null;
+let realtimeSub   = null;
+
+async function init() {
+  const { data: { session: s } } = await sb.auth.getSession();
+  if (!s) { window.location.href = '/dashboard'; return; }
+  session = s; token = s.access_token;
+
+  await loadFiles();
+  renderNifGrid();
+  renderResults(); // show any existing results
+
+  // Check URL for nif param
+  const urlNif = new URLSearchParams(window.location.search).get('nif');
+  if (urlNif) {
+    const found = files.find(f => f.id === urlNif);
+    if (found) selectNif(found);
+  }
+}
+
+async function api(path, opts={}) {
+  const res = await fetch(API+path, {
+    ...opts,
+    headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json', ...(opts.headers??{}) }
+  });
+  const d = await res.json();
+  if (!res.ok) throw new Error(d.error ?? 'API error');
+  return d;
+}
+
+async function loadFiles() {
+  files = await api('/nif').catch(()=>[]);
+  // Filter to only completed NIFs that have depth data
+  files = files.filter(f => f.gaussian_count > 0 && f.r2_key);
+}
+
+function renderNifGrid() {
+  const grid = document.getElementById('nif-grid');
+  if (!files.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">◉</div><div style="font-weight:700;color:var(--text);margin-bottom:6px">No NIF files ready</div><div>Upload a capture first — the AI must finish reconstruction before printing</div></div>`;
+    return;
+  }
+  grid.innerHTML = files.map(f => `
+    <div class="nif-card${selectedNif?.id===f.id?' selected':''}" onclick="selectNif(${JSON.stringify(f).replace(/"/g,'&quot;')})">
+      <div class="nif-thumb">${VERT_ICONS[f.vertical]??'✦'}</div>
+      <div class="nif-info">
+        <div class="nif-title">${f.title||'Untitled NIF'}</div>
+        <div class="nif-meta">${fmtNum(f.gaussian_count)} depth points · ${fmtBytes(f.file_size)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectNif(file) {
+  selectedNif = file;
+  selectedTmpls.clear();
+  selectedSize = null;
+
+  // Update NIF grid selection state
+  document.querySelectorAll('.nif-card').forEach(c => c.classList.remove('selected'));
+  const idx = files.findIndex(f=>f.id===file.id);
+  const cards = document.querySelectorAll('.nif-card');
+  if (cards[idx]) cards[idx].classList.add('selected');
+
+  document.getElementById('template-section').style.display='block';
+  renderTemplates(file);
+  renderSizeButtons();
+  renderResults();
+
+  // ── Show captured dimensions ────────────────────────────────────────────────
+  displayCapturedDimensions(file);
+}
+
+function displayCapturedDimensions(nif) {
+  const panel = document.getElementById('dimensions-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  // Dimensions stored in meta by the reconstruction pipeline
+  const dims = nif.meta?.captured_dimensions;
+  if (dims) {
+    document.getElementById('dim-height').textContent = dims.height_m?.toFixed(2) ?? '—';
+    document.getElementById('dim-width').textContent  = dims.width_m?.toFixed(2)  ?? '—';
+    document.getElementById('dim-depth').textContent  = dims.depth_m?.toFixed(2)  ?? '—';
+    // Store for calibration
+    window._capturedDims = dims;
+  } else {
+    // Estimate from gaussian count and spread — approximate
+    document.getElementById('dim-height').textContent = '~1.70';
+    document.getElementById('dim-width').textContent  = '~0.60';
+    document.getElementById('dim-depth').textContent  = '~0.30';
+    window._capturedDims = { height_m: 1.70, width_m: 0.60, depth_m: 0.30, estimated: true };
+  }
+
+  // Pre-fill calibration if previous value exists
+  const calib = document.getElementById('calib-height');
+  if (calib && calib.value) applyCalibratedScale(+calib.value);
+}
+
+function applyCalibratedScale(realHeightM) {
+  const dims = window._capturedDims;
+  if (!dims || !realHeightM || realHeightM < 0.1) return;
+
+  // Scale ratio: real height / captured height
+  const capturedH = dims.height_m || 1.70;
+  const ratio     = realHeightM / capturedH;
+
+  const calibEl = document.getElementById('calib-ratio');
+  if (calibEl) {
+    calibEl.style.display = 'inline-block';
+    calibEl.textContent   = `Scale: ×${ratio.toFixed(3)}`;
+  }
+
+  // Update print dimensions based on selected size
+  updatePrintDimensions();
+}
+
+function updatePrintDimensions() {
+  const h = selectedSize;
+  if (!h) return;
+
+  const dims    = window._capturedDims;
+  const calibH  = +document.getElementById('calib-height')?.value;
+  const capturedH = dims?.height_m || 1.70;
+  const scale   = calibH > 0 ? calibH / capturedH : 1.0;
+
+  const capturedW = (dims?.width_m  || 0.60) / (dims?.height_m || 1.70);
+  const capturedD = (dims?.depth_m  || 0.30) / (dims?.height_m || 1.70);
+
+  const printW = Math.round(h * capturedW);
+  const printD = Math.round(h * capturedD);
+
+  document.getElementById('print-h').textContent = h;
+  document.getElementById('print-w').textContent = printW;
+  document.getElementById('print-d').textContent = printD;
+
+  // Volume estimate (cm³) → weight (g) for PLA density 1.24 g/cm³
+  const volumeCm3 = (h / 10) * (printW / 10) * (printD / 10) * 0.15; // ~15% infill
+  const weightG   = Math.round(volumeCm3 * 1.24);
+
+  // Material cost estimate (R per gram PLA ~= R0.50)
+  const costR = (weightG * 0.5).toFixed(0);
+
+  // Print time estimate (FDM ~18 cm³/hour at 15% infill)
+  const hours = volumeCm3 / 18;
+  const timeStr = hours < 1
+    ? `~${Math.round(hours * 60)} min`
+    : `~${hours.toFixed(1)} hr`;
+
+  document.getElementById('est-material').textContent = `~R${costR} material cost`;
+  document.getElementById('est-weight').textContent   = weightG;
+  document.getElementById('est-time').textContent     = timeStr;
+
+  document.getElementById('print-dimensions').style.display = 'block';
+}
+
+function renderTemplates(nif) {
+  const grid   = document.getElementById('templates-grid');
+  const keys   = nif.print_r2_keys ?? {};
+
+  grid.innerHTML = Object.entries(TEMPLATES).map(([id, t]) => {
+    const isReady = !!keys[id];
+    return `
+    <div class="tmpl-card${isReady?' ready':''}" id="tmpl-${id}" onclick="toggleTemplate('${id}')">
+      <div class="tmpl-visual">
+        <div class="tmpl-select-indicator" id="tmpl-ind-${id}"></div>
+        <div class="tmpl-icon">${t.icon}</div>
+        ${isReady ? '<div class="tmpl-ready-badge">✓ Ready</div>' : ''}
+      </div>
+      <div class="tmpl-body">
+        <div class="tmpl-name">${t.name}</div>
+        <div class="tmpl-desc">${t.desc}</div>
+        <div class="tmpl-specs">${t.specs.map(s=>`<span class="tmpl-spec">${s}</span>`).join('')}</div>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function toggleTemplate(id) {
+  if (selectedTmpls.has(id)) selectedTmpls.delete(id);
+  else selectedTmpls.add(id);
+  document.querySelectorAll('[id^="tmpl-"]').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('[id^="tmpl-ind-"]').forEach(i => { i.textContent=''; });
+  selectedTmpls.forEach(t => {
+    document.getElementById(`tmpl-${t}`)?.classList.add('selected');
+    const ind = document.getElementById(`tmpl-ind-${t}`);
+    if (ind) ind.textContent = '✓';
+  });
+  // Auto-set height to first selected template's default
+  if (!selectedSize && selectedTmpls.size > 0) {
+    const first = [...selectedTmpls][0];
+    selectedSize = TEMPLATES[first].height;
+    renderSizeButtons();
+  }
+  // Show edit panel for the last selected template
+  const last = [...selectedTmpls].at(-1);
+  renderEditPanel(last ?? null);
+  updateGenerateButton();
+}
+
+// ── Per-template edit panel ───────────────────────────────────────────────────
+// editParams is sent to the GPU worker alongside the template name.
+// These adjust the pipeline without a code change.
+let editParams = {};
+
+function renderEditPanel(tmplId) {
+  const panel = document.getElementById('edit-panel');
+  if (!tmplId) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const panels = {
+    bobblehead: `
+      <div class="ep-title">😄 Bobblehead options</div>
+      <div class="ep-note">Exports as <strong>two separate STL files</strong> — print head and body separately, then join with a coil spring (8–10mm diameter, available at any hardware store).</div>
+      <div class="ep-row">
+        <label>Head scale <span class="ep-val" id="ep-head_scale">2.2×</span></label>
+        <input type="range" min="1.5" max="3.5" step="0.1" value="2.2"
+          oninput="setEP('head_scale',+this.value,'ep-head_scale',v=>v+'×')"/>
+        <div class="ep-hint">2.2× matches the classic bobblehead look. Lower = more realistic. Higher = more caricature.</div>
+      </div>
+      <div class="ep-row">
+        <label>Neck split height <span class="ep-val" id="ep-neck_split">40%</span></label>
+        <input type="range" min="25" max="55" step="5" value="40"
+          oninput="setEP('neck_split_pct',+this.value,'ep-neck_split',v=>v+'%')"/>
+        <div class="ep-hint">Where to cut between head and body. 40% works for most people. Raise if the neck is cutting into the chin.</div>
+      </div>
+      <div class="ep-row">
+        <label>Spring gap <span class="ep-val" id="ep-spring_gap">4mm</span></label>
+        <input type="range" min="2" max="8" step="1" value="4"
+          oninput="setEP('spring_gap_mm',+this.value,'ep-spring_gap',v=>v+'mm')"/>
+        <div class="ep-hint">Gap between head and body. Larger = more bounce. Match to your spring's free length.</div>
+      </div>
+      <div class="ep-row">
+        <label>Socket radius <span class="ep-val" id="ep-socket_r">5.2mm</span></label>
+        <input type="range" min="4" max="8" step="0.2" value="5.2"
+          oninput="setEP('socket_r_mm',+this.value,'ep-socket_r',v=>v+'mm')"/>
+        <div class="ep-hint">Size of the neck socket. Should be ~0.2mm larger than your spring diameter for a friction fit.</div>
+      </div>
+    `,
+    figurine: `
+      <div class="ep-title">🧍 Figurine options</div>
+      <div class="ep-row">
+        <label>Wall thickness <span class="ep-val" id="ep-wall_mm">2.5mm</span></label>
+        <input type="range" min="1.5" max="5" step="0.5" value="2.5"
+          oninput="setEP('wall_mm',+this.value,'ep-wall_mm',v=>v+'mm')"/>
+        <div class="ep-hint">FDM minimum: 2mm. Resin minimum: 1.5mm. Thicker = stronger, heavier, more material cost.</div>
+      </div>
+      <div class="ep-row">
+        <label>Smoothing <span class="ep-val" id="ep-smooth_iters">20</span> passes</label>
+        <input type="range" min="5" max="50" step="5" value="20"
+          oninput="setEP('smooth_iters',+this.value,'ep-smooth_iters',v=>v)"/>
+        <div class="ep-hint">More passes = smoother surface, less sharp detail. For resin with fine features, keep low. For FDM use 20–30.</div>
+      </div>
+    `,
+    memory: `
+      <div class="ep-title">💝 Memory Figurine options</div>
+      <div class="ep-row">
+        <label>Wall thickness <span class="ep-val" id="ep-wall_mm_m">3mm</span></label>
+        <input type="range" min="2" max="5" step="0.5" value="3"
+          oninput="setEP('wall_mm',+this.value,'ep-wall_mm_m',v=>v+'mm')"/>
+      </div>
+      <div class="ep-row">
+        <label>Smoothing <span class="ep-val" id="ep-smooth_iters_m">25</span> passes</label>
+        <input type="range" min="10" max="50" step="5" value="25"
+          oninput="setEP('smooth_iters',+this.value,'ep-smooth_iters_m',v=>v)"/>
+      </div>
+      <div class="ep-note">The inscription area on the base is flat — your 3D print service or laser engraver can etch a name and date for you after printing.</div>
+    `,
+    bust: `
+      <div class="ep-title">🏺 Bust options</div>
+      <div class="ep-row">
+        <label>Crop height <span class="ep-val" id="ep-bust_crop">55%</span></label>
+        <input type="range" min="40" max="75" step="5" value="55"
+          oninput="setEP('bust_crop_pct',+this.value,'ep-bust_crop',v=>v+'%')"/>
+        <div class="ep-hint">Percentage of the full figure to include from the top. 55% = head + full shoulders. 70% = chest level.</div>
+      </div>
+      <div class="ep-row">
+        <label>Wall thickness <span class="ep-val" id="ep-wall_mm_b">3mm</span></label>
+        <input type="range" min="2" max="6" step="0.5" value="3"
+          oninput="setEP('wall_mm',+this.value,'ep-wall_mm_b',v=>v+'mm')"/>
+      </div>
+    `,
+    miniature: `
+      <div class="ep-title">⚔️ Miniature options</div>
+      <div class="ep-note">Miniatures are solid (no hollowing) at 32mm scale. <strong>Resin strongly recommended</strong> — FDM cannot reliably print features below 1.5mm at this scale.</div>
+      <div class="ep-row">
+        <label>Smoothing <span class="ep-val" id="ep-smooth_iters_mini">10</span> passes</label>
+        <input type="range" min="0" max="20" step="5" value="10"
+          oninput="setEP('smooth_iters',+this.value,'ep-smooth_iters_mini',v=>v)"/>
+        <div class="ep-hint">Low smoothing preserves fine detail. High smoothing removes sharp edges. 0–10 recommended for minis.</div>
+      </div>
+    `,
+    keychain: `
+      <div class="ep-title">🔑 Keychain options</div>
+      <div class="ep-row">
+        <label>Ring hole diameter <span class="ep-val" id="ep-ring_mm">4mm</span></label>
+        <input type="range" min="3" max="7" step="0.5" value="4"
+          oninput="setEP('keyring_hole_mm',+this.value,'ep-ring_mm',v=>v+'mm')"/>
+        <div class="ep-hint">Standard split ring is 25mm diameter, needs 4mm hole minimum. If using a lobster clasp, 3mm is fine.</div>
+      </div>
+    `,
+    ornament: `
+      <div class="ep-title">🎄 Ornament options</div>
+      <div class="ep-row">
+        <label>Hook hole diameter <span class="ep-val" id="ep-hook_mm">3.5mm</span></label>
+        <input type="range" min="2.5" max="6" step="0.5" value="3.5"
+          oninput="setEP('keyring_hole_mm',+this.value,'ep-hook_mm',v=>v+'mm')"/>
+        <div class="ep-hint">For ribbon: 3mm. For metal ornament hook: 3.5–4mm.</div>
+      </div>
+      <div class="ep-row">
+        <label>Wall thickness <span class="ep-val" id="ep-wall_mm_orn">2mm</span></label>
+        <input type="range" min="1.2" max="4" step="0.4" value="2"
+          oninput="setEP('wall_mm',+this.value,'ep-wall_mm_orn',v=>v+'mm')"/>
+      </div>
+    `,
+    statue: `
+      <div class="ep-title">🏆 Portrait Statue options</div>
+      <div class="ep-row">
+        <label>Wall thickness <span class="ep-val" id="ep-wall_mm_s">4mm</span></label>
+        <input type="range" min="3" max="8" step="0.5" value="4"
+          oninput="setEP('wall_mm',+this.value,'ep-wall_mm_s',v=>v+'mm')"/>
+        <div class="ep-hint">Large prints need thicker walls. At 200mm+ height, 4mm minimum is recommended to survive post-processing.</div>
+      </div>
+      <div class="ep-row">
+        <label>Smoothing <span class="ep-val" id="ep-smooth_iters_s">15</span> passes</label>
+        <input type="range" min="5" max="40" step="5" value="15"
+          oninput="setEP('smooth_iters',+this.value,'ep-smooth_iters_s',v=>v)"/>
+      </div>
+    `,
+    coin: `
+      <div class="ep-title">🪙 Portrait Coin options</div>
+      <div class="ep-row">
+        <label>Relief depth <span class="ep-val" id="ep-coin_depth">5mm</span></label>
+        <input type="range" min="2" max="12" step="1" value="5"
+          oninput="setEP('coin_depth_mm',+this.value,'ep-coin_depth',v=>v+'mm')"/>
+        <div class="ep-hint">2–4mm = subtle keepsake. 5–8mm = classic medallion. 10mm+ = sculptural.</div>
+      </div>
+    `,
+  };
+
+  panel.innerHTML = `
+    <div class="edit-panel-inner">
+      ${panels[tmplId] ?? `<div class="ep-title">${TEMPLATES[tmplId]?.name ?? tmplId}</div><div class="ep-note">No extra options for this template.</div>`}
+    </div>
+  `;
+}
+
+function setEP(key, val, labelId, fmt) {
+  editParams[key] = val;
+  const el = document.getElementById(labelId);
+  if (el) el.textContent = fmt(val);
+}
+
+function renderSizeButtons() {
+  const wrap = document.getElementById('size-buttons');
+  const sizes = [45, 80, 100, 120, 150, 200];
+  wrap.innerHTML = sizes.map(s => `
+    <button class="size-btn${selectedSize===s?' active':''}" onclick="setSize(${s})">${s}mm</button>
+  `).join('');
+  document.getElementById('size-custom').value = selectedSize || '';
+}
+
+function setSize(mm) {
+  selectedSize = mm;
+  document.getElementById('size-custom').value = mm;
+  renderSizeButtons();
+  updateGenerateButton();
+  updatePrintDimensions(); // refresh mm output whenever size changes
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ci = document.getElementById('size-custom');
+  if (ci) ci.addEventListener('input', e => {
+    const v = parseInt(e.target.value);
+    if (v >= 20 && v <= 400) { selectedSize = v; renderSizeButtons(); updateGenerateButton(); }
+  });
+});
+
+function selectQuality(btn) {
+  selectedRes = parseInt(btn.dataset.res);
+  document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updateGenerateButton() {
+  const btn  = document.getElementById('generate-btn');
+  const sub  = document.getElementById('generate-btn-sub');
+  const info = document.getElementById('submit-info');
+  const ok   = selectedNif && selectedTmpls.size > 0 && selectedSize;
+  btn.disabled = !ok;
+  if (!selectedTmpls.size) {
+    sub.textContent = 'Select templates first';
+  } else if (!selectedSize) {
+    sub.textContent = 'Set a height';
+  } else {
+    const tmplNames = [...selectedTmpls].map(t => TEMPLATES[t].name).join(', ');
+    sub.textContent = `${selectedTmpls.size} template${selectedTmpls.size>1?'s':''} · ${selectedSize}mm`;
+    // Estimate time
+    const mins = selectedRes === 256 ? 10 : selectedRes === 192 ? 5 : 2;
+    info.innerHTML = `Generating: <strong>${tmplNames}</strong><br/>Estimated time: ~${mins * selectedTmpls.size} minutes on GPU`;
+  }
+}
+
+async function startPrint() {
+  if (!selectedNif || !selectedTmpls.size || !selectedSize) return;
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div><span>Queuing…</span>';
+
+  try {
+    const { jobId } = await api(`/nif/${selectedNif.id}/print/request`, {
+      method:'POST',
+      body: JSON.stringify({
+        templates:   [...selectedTmpls],
+        height_mm:   selectedSize,
+        voxel_res:   selectedRes,
+        edit_params: editParams,  // per-template overrides from the edit panel
+      }),
+    });
+    activeJobId = jobId;
+    startPolling(jobId);
+    showProgress();
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>⬡ Generate STL</span><span id="generate-btn-sub" style="font-size:11px;font-weight:500;opacity:0.7">Error — try again</span>';
+    alert('Error: ' + e.message);
+  }
+}
+
+function showProgress() {
+  const card = document.getElementById('progress-card');
+  card.classList.add('visible');
+  renderProgressSteps(0, null);
+}
+
+function renderProgressSteps(progress, currentTemplate) {
+  const pct = Math.round(progress);
+  document.getElementById('pc-bar').style.width = pct + '%';
+  document.getElementById('pc-pct').textContent  = pct + '%';
+
+  const stepIdx = Math.min(Math.floor(pct / (100/PRINT_STEPS.length)), PRINT_STEPS.length-1);
+  const title   = currentTemplate ? `Processing: ${TEMPLATES[currentTemplate]?.name ?? currentTemplate}` : 'Preparing GPU…';
+  document.getElementById('pc-title').textContent = title;
+
+  document.getElementById('pc-steps').innerHTML = PRINT_STEPS.map((s,i) => {
+    const state = i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'pending';
+    const col   = state==='done' ? 'var(--green)' : state==='active' ? 'var(--gold)' : 'var(--text3)';
+    return `
+      <div class="pc-step">
+        <div class="step-dot ${state}"></div>
+        <span style="color:${col}">${s}</span>
+        ${i===stepIdx&&currentTemplate?`<span class="pc-template-badge">${currentTemplate}</span>`:''}
+      </div>
+    `;
+  }).join('');
+}
+
+function startPolling(jobId) {
+  // Realtime subscription for live updates
+  if (realtimeSub) realtimeSub.unsubscribe();
+  realtimeSub = sb.channel(`print-job-${jobId}`)
+    .on('postgres_changes', {
+      event:'UPDATE', schema:'public', table:'print_jobs', filter:`id=eq.${jobId}`
+    }, payload => {
+      const j = payload.new;
+      renderProgressSteps(j.progress, j.current_template);
+      if (j.status === 'complete') {
+        onPrintComplete();
+      } else if (j.status === 'failed') {
+        onPrintFailed(j.error_message);
+      }
+    }).subscribe();
+
+  // Fallback polling every 5s
+  const poll = async () => {
+    if (!activeJobId) return;
+    const j = await api(`/print-jobs/${jobId}`).catch(()=>null);
+    if (!j) return;
+    renderProgressSteps(j.progress, j.current_template);
+    if (j.status === 'complete') { onPrintComplete(); return; }
+    if (j.status === 'failed')   { onPrintFailed(j.error_message); return; }
+    setTimeout(poll, 5000);
+  };
+  setTimeout(poll, 5000);
+}
+
+async function onPrintComplete() {
+  activeJobId = null;
+  if (realtimeSub) { realtimeSub.unsubscribe(); realtimeSub=null; }
+  renderProgressSteps(100, null);
+  document.getElementById('pc-title').textContent = 'STL files ready ✓';
+  document.getElementById('pc-bar').style.background = 'var(--green)';
+
+  // Reload the NIF file to get fresh print_r2_keys
+  const updated = await api(`/nif/${selectedNif.id}`).catch(()=>null);
+  if (updated) { selectedNif = updated; files = files.map(f => f.id===updated.id?updated:f); }
+
+  setTimeout(() => {
+    document.getElementById('progress-card').classList.remove('visible');
+    renderResults();
+    renderTemplates(selectedNif); // refresh ready badges
+    document.getElementById('generate-btn').disabled = false;
+    document.getElementById('generate-btn').innerHTML = '<span>⬡ Generate STL</span><span id="generate-btn-sub" style="font-size:11px;font-weight:500;opacity:0.7">Done</span>';
+  }, 1200);
+}
+
+function onPrintFailed(msg) {
+  activeJobId = null;
+  document.getElementById('pc-title').textContent = 'Failed: ' + (msg||'Unknown error');
+  document.getElementById('pc-title').style.color = 'var(--red)';
+  document.getElementById('generate-btn').disabled = false;
+  document.getElementById('generate-btn').innerHTML = '<span>⬡ Try again</span>';
+}
+
+async function renderResults() {
+  if (!selectedNif) return;
+  const keys  = selectedNif.print_r2_keys ?? {};
+  const stats = selectedNif.print_stats   ?? {};
+  const ready = Object.keys(keys);
+
+  const section = document.getElementById('results-section');
+  if (!ready.length) { section.style.display='none'; return; }
+
+  section.style.display = 'block';
+  const grid = document.getElementById('results-grid');
+
+  grid.innerHTML = ready.map(tmpl => {
+    const t = TEMPLATES[tmpl] ?? { icon:'📦', name:tmpl };
+    const s = stats[tmpl] ?? {};
+    return `
+      <div class="result-card">
+        <div class="rc-thumb">
+          <div class="rc-icon">${t.icon}</div>
+          <div class="rc-badge">✓ STL Ready</div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name">${t.name}</div>
+          <div class="rc-stats">
+            <div class="rc-stat">
+              <div class="rc-stat-val">${s.height_mm ?? '—'}mm</div>
+              <div class="rc-stat-key">Height</div>
+            </div>
+            <div class="rc-stat">
+              <div class="rc-stat-val">${s.pla_weight_g ? s.pla_weight_g+'g' : '—'}</div>
+              <div class="rc-stat-key">PLA weight</div>
+            </div>
+            <div class="rc-stat">
+              <div class="rc-stat-val">${s.faces ? fmtNum(s.faces) : '—'}</div>
+              <div class="rc-stat-key">Faces</div>
+            </div>
+            <div class="rc-stat">
+              <div class="rc-stat-val">${s.is_watertight ? '✓' : '⚠'}</div>
+              <div class="rc-stat-key">Watertight</div>
+            </div>
+          </div>
+          ${s.recommended_printer ? `<div class="rc-printer">🖨️ ${s.recommended_printer}</div>` : ''}
+          <div class="rc-actions">
+            <button class="btn-download" onclick="downloadSTL('${selectedNif.id}','${tmpl}')">
+              ↓ Download STL
+            </button>
+            <button class="btn-view" onclick="previewSTL('${selectedNif.id}','${tmpl}')">View</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function downloadSTL(nifId, template) {
+  const btn = event.target;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner"></div>';
+  btn.disabled  = true;
+  try {
+    const { url, filename } = await api(`/nif/${nifId}/print/download/${template}`);
+    const a = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    btn.innerHTML = '✓ Downloaded';
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled=false; }, 2000);
+  } catch(e) {
+    btn.innerHTML = orig;
+    btn.disabled  = false;
+    alert('Download error: ' + e.message);
+  }
+}
+
+function previewSTL(nifId, template) {
+  // Open in online STL viewer — no install needed
+  api(`/nif/${nifId}/print/download/${template}`).then(({ url }) => {
+    const viewerUrl = `https://www.viewstl.com/?embedded&url=${encodeURIComponent(url)}`;
+    window.open(viewerUrl, '_blank');
+  }).catch(e => alert('Error: ' + e.message));
+}
+
+const fmtNum   = n => Number(n||0).toLocaleString();
+const fmtBytes = b => !b?'—':b>1e9?(b/1e9).toFixed(1)+'GB':b>1e6?(b/1e6).toFixed(1)+'MB':(b/1e3).toFixed(0)+'KB';
+
+init();
+</script>
+</body>
+</html>

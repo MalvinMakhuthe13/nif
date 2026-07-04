@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NIF · Discover Spatial Content</title>
+<meta name="description" content="Discover and share 3D spatial captures from creators and brands. Powered by NIF — Neural Interactive Format." />
+<meta property="og:title"       content="NIF · Discover Spatial Content" />
+<meta property="og:description" content="The social platform for 3D spatial content." />
+<meta property="og:image"       content="https://fumoca.co.za/og-default.webp" />
+<meta property="og:type"        content="website" />
+<meta name="twitter:card"       content="summary_large_image" />
+<link rel="icon" href="/icons/nif-32.png" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #080808;
+  --su:      #0e0e0e;
+  --su2:     #141414;
+  --border:  #1e1e1e;
+  --border2: #2a2a2a;
+  --text:    #e8e8e8;
+  --text2:   #888;
+  --text3:   #444;
+  --accent:  #7c6dfa;
+  --cyan:    #3ecfcf;
+  --red:     #f06060;
+  --green:   #50e090;
+  --gold:    #f0c030;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Nav ── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  height: 56px;
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+  backdrop-filter: blur(12px);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none; color: var(--text);
+}
+.nav-logo-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, #7c6dfa, #3ecfcf);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+}
+.nav-logo-name { font-size: 16px; font-weight: 800; letter-spacing: -.3px; }
+.nav-search {
+  flex: 1; max-width: 400px; margin: 0 auto;
+  background: var(--su);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px; height: 36px;
+}
+.nav-search input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-size: 13px; font-family: inherit;
+  flex: 1;
+}
+.nav-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.btn-nav {
+  background: none; border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text2);
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  padding: 7px 14px; cursor: pointer; transition: all .15s;
+  text-decoration: none; display: inline-flex; align-items: center;
+}
+.btn-nav:hover { color: var(--text); border-color: #3a3a3a; }
+.btn-nav.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.btn-nav.primary:hover { background: #8d7ffb; }
+.nav-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer; overflow: hidden; flex-shrink: 0;
+  border: 2px solid var(--border2);
+}
+.nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  background: var(--bg);
+  position: sticky; top: 56px; z-index: 90;
+}
+.tab {
+  background: none; border: none; color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  padding: 14px 16px; cursor: pointer; transition: color .15s;
+  position: relative;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--text);
+}
+.tab.active::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+}
+.vertical-chips {
+  display: flex; gap: 8px; padding: 12px 20px;
+  overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.vertical-chips::-webkit-scrollbar { display: none; }
+.chip {
+  background: var(--su); border: 1px solid var(--border);
+  border-radius: 999px; color: var(--text2);
+  font-size: 12px; font-weight: 500; font-family: inherit;
+  padding: 5px 14px; cursor: pointer; white-space: nowrap;
+  transition: all .15s;
+}
+.chip:hover, .chip.active {
+  background: var(--accent)22; border-color: var(--accent)66; color: var(--accent);
+}
+
+/* ── Grid ── */
+.feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+@media (max-width: 600px) {
+  .feed-grid { grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+}
+
+/* ── NIF Card ── */
+.nif-card {
+  background: var(--su);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .15s, border-color .15s;
+  position: relative;
+}
+.nif-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.nif-card:hover .card-overlay { opacity: 1; }
+.card-thumb {
+  width: 100%; aspect-ratio: 4/3;
+  background: #111;
+  position: relative; overflow: hidden;
+}
+.card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.card-thumb-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0e0e0e, #1a1a1a);
+  font-size: 32px; color: #2a2a2a;
+}
+.card-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(0deg, #000c 0%, transparent 50%);
+  opacity: 0; transition: opacity .2s;
+  display: flex; align-items: flex-end; padding: 12px;
+}
+.card-play-btn {
+  background: #ffffffee; border-radius: 50%;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #000; margin: auto;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.card-gaussian-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: #000a; border-radius: 6px;
+  font-size: 9px; color: #888; padding: 3px 7px;
+  font-family: 'DM Mono', monospace;
+}
+.card-vertical-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--accent)22; border: 1px solid var(--accent)44;
+  border-radius: 999px; font-size: 9px; color: var(--accent);
+  padding: 2px 8px; font-weight: 600;
+}
+.card-info { padding: 12px; }
+.card-creator {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.creator-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+  flex-shrink: 0; overflow: hidden;
+}
+.creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.creator-name {
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.verified-badge { color: var(--cyan); font-size: 10px; margin-left: 2px; }
+.brand-badge {
+  font-size: 8px; font-weight: 700; color: var(--gold);
+  background: var(--gold)18; border-radius: 4px;
+  padding: 1px 5px; letter-spacing: .4px; margin-left: 4px;
+}
+.card-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  margin-bottom: 8px; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-stats {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 11px; color: var(--text3);
+}
+.card-stat { display: flex; align-items: center; gap: 4px; }
+
+/* ── Like/Save actions ── */
+.card-actions {
+  position: absolute; bottom: 52px; right: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+  opacity: 0; transition: opacity .2s;
+}
+.nif-card:hover .card-actions { opacity: 1; }
+.action-btn-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #000a; border: 1px solid #ffffff18;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; transition: all .15s;
+  color: #fff;
+}
+.action-btn-circle:hover { background: #000e; transform: scale(1.1); }
+.action-btn-circle.liked { color: var(--red); }
+.action-btn-circle.saved { color: var(--gold); }
+
+/* ── Loading skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skeleton-card {
+  background: var(--su); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  grid-column: 1/-1; text-align: center;
+  padding: 80px 20px; color: var(--text3);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state-title { font-size: 18px; font-weight: 700; color: var(--text2); margin-bottom: 8px; }
+.empty-state-sub { font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0 auto 20px; }
+
+/* ── Load more ── */
+.load-more-wrap { display: flex; justify-content: center; padding: 20px; }
+.btn-load-more {
+  background: var(--su); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  padding: 10px 28px; cursor: pointer; transition: all .15s;
+}
+.btn-load-more:hover { color: var(--text); border-color: #3a3a3a; }
+
+/* ── Toast ── */
+#toast-root {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+  align-items: flex-end; pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a class="nav-logo" href="/">
+    <div class="nav-logo-mark">NIF</div>
+    <span class="nav-logo-name">fumoca</span>
+  </a>
+  <div class="nav-search">
+    <span style="font-size:14px;color:var(--text3);">⌕</span>
+    <input id="search-input" type="text" placeholder="Search spatial content…" autocomplete="off" />
+  </div>
+  <div class="nav-actions" id="nav-actions">
+    <!-- Populated by JS -->
+  </div>
+</nav>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" id="tab-discover" onclick="switchTab('discover')">Discover</button>
+  <button class="tab" id="tab-following" onclick="switchTab('following')">Following</button>
+  <button class="tab" id="tab-saved" onclick="switchTab('saved')">Saved</button>
+</div>
+
+<!-- Vertical filter chips -->
+<div class="vertical-chips" id="vertical-chips">
+  <button class="chip active" data-v="" onclick="selectVertical(this,'')">All</button>
+  <button class="chip" data-v="automotive" onclick="selectVertical(this,'automotive')">🚗 Automotive</button>
+  <button class="chip" data-v="fashion"    onclick="selectVertical(this,'fashion')">👗 Fashion</button>
+  <button class="chip" data-v="property"   onclick="selectVertical(this,'property')">🏠 Property</button>
+  <button class="chip" data-v="mining"     onclick="selectVertical(this,'mining')">⛏ Mining</button>
+  <button class="chip" data-v="agriculture" onclick="selectVertical(this,'agriculture')">🌾 Agriculture</button>
+  <button class="chip" data-v="generic"    onclick="selectVertical(this,'generic')">⬡ Generic</button>
+</div>
+
+<!-- Feed grid -->
+<div class="feed-grid" id="feed-grid">
+  <!-- Skeleton loaders -->
+  ${Array(8).fill(`
+    <div class="skeleton-card">
+      <div class="skeleton" style="aspect-ratio:4/3;width:100%;"></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+        <div class="skeleton" style="height:12px;width:60%;"></div>
+        <div class="skeleton" style="height:16px;width:85%;"></div>
+        <div class="skeleton" style="height:11px;width:40%;"></div>
+      </div>
+    </div>
+  `).join('')}
+</div>
+
+<!-- Load more -->
+<div class="load-more-wrap" id="load-more-wrap" style="display:none;">
+  <button class="btn-load-more" onclick="loadMore()">Load more</button>
+</div>
+
+<div id="toast-root"></div>
+
+<script src="../../config.js"></script>
+<script>
+const cfg    = window.NIF_CONFIG ?? {};
+const API    = cfg.apiBase    ?? 'https://api.fumoca.co.za/api';
+const SBURL  = cfg.supabaseUrl     ?? '';
+const SBKEY  = cfg.supabaseAnonKey ?? '';
+
+let state = {
+  tab:       'discover',
+  vertical:  '',
+  page:      0,
+  loading:   false,
+  items:     [],
+  user:      null,
+  session:   null,
+  likedSet:  new Set(),
+  savedSet:  new Set(),
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  // Check auth
+  const token = localStorage.getItem('nif_token');
+  if (token) {
+    try {
+      const res  = await fetch(`${API}/profile/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) { state.user = await res.json(); state.session = { access_token: token }; }
+      else localStorage.removeItem('nif_token');
+    } catch {}
+  }
+
+  renderNav();
+  await loadFeed(true);
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function renderNav() {
+  const el = document.getElementById('nav-actions');
+  if (state.user) {
+    const init = (state.user.display_name?.[0] ?? state.user.username?.[0] ?? '?').toUpperCase();
+    el.innerHTML = `
+      <a href="/dashboard/" class="btn-nav">Dashboard</a>
+      <a href="/u/${state.user.username ?? ''}" class="nav-avatar" title="${state.user.display_name ?? ''}">
+        ${state.user.avatar_url
+          ? `<img src="${state.user.avatar_url}" alt="" />`
+          : init}
+      </a>
+    `;
+  } else {
+    el.innerHTML = `
+      <a href="/dashboard/" class="btn-nav">Sign In</a>
+      <a href="/dashboard/" class="btn-nav primary">Get Started</a>
+    `;
+  }
+}
+
+// ── Tab ───────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  if (!state.user && tab !== 'discover') {
+    toast('Sign in to see your ' + tab + ' feed', 'info');
+    window.location.href = '/dashboard/';
+    return;
+  }
+  state.tab   = tab;
+  state.page  = 0;
+  state.items = [];
+  ['discover','following','saved'].forEach(t => {
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+  });
+  loadFeed(true);
+}
+
+function selectVertical(btn, v) {
+  state.vertical = v;
+  state.page     = 0;
+  state.items    = [];
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === btn));
+  loadFeed(true);
+}
+
+// ── Load feed ─────────────────────────────────────────────────────────────────
+async function loadFeed(reset = false) {
+  if (state.loading) return;
+  state.loading = true;
+  if (reset) { state.page = 0; state.items = []; renderSkeletons(); }
+
+  try {
+    const ep = state.tab === 'following' ? 'feed'
+             : state.tab === 'saved'     ? 'saved'
+             : 'discover';
+
+    const params = new URLSearchParams({
+      page:   state.page,
+      limit:  20,
+      ...(state.vertical ? { vertical: state.vertical } : {}),
+      ...(state.tab === 'discover' ? { sort: 'trending' } : {}),
+    });
+
+    const headers = {};
+    if (state.session?.access_token) headers['Authorization'] = `Bearer ${state.session.access_token}`;
+
+    const res  = await fetch(`${API}/${ep}?${params}`, { headers });
+    const data = await res.json();
+
+    state.items = reset ? (data ?? []) : [...state.items, ...(data ?? [])];
+    state.page++;
+    renderCards(state.items, reset);
+
+    const loadMoreWrap = document.getElementById('load-more-wrap');
+    if (loadMoreWrap) loadMoreWrap.style.display = data?.length === 20 ? '' : 'none';
+  } catch (err) {
+    console.error('[Feed]', err);
+    toast('Could not load feed', 'error');
+  } finally {
+    state.loading = false;
+  }
+}
+
+function loadMore() { loadFeed(false); }
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderSkeletons() {
+  document.getElementById('feed-grid').innerHTML = Array(8).fill(`
+    <div class="skeleton-card">
+      <div class="skeleton" style="aspect-ratio:4/3;width:100%;"></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+        <div class="skeleton" style="height:12px;width:60%;"></div>
+        <div class="skeleton" style="height:16px;width:85%;"></div>
+        <div class="skeleton" style="height:11px;width:40%;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCards(items, reset) {
+  const grid = document.getElementById('feed-grid');
+  if (!items.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⬡</div>
+        <div class="empty-state-title">${state.tab === 'following' ? 'Nothing in your feed yet' : 'No results'}</div>
+        <div class="empty-state-sub">${
+          state.tab === 'following'
+            ? 'Follow creators and brands to see their spatial content here.'
+            : 'Be the first to capture and share this type of content.'
+        }</div>
+        ${state.tab === 'following' ? '<a href="/feed" class="btn-nav">Explore Discover</a>' : ''}
+      </div>
+    `;
+    return;
+  }
+
+  const html = items.map(n => cardHTML(n)).join('');
+  if (reset) { grid.innerHTML = html; } else { grid.insertAdjacentHTML('beforeend', html); }
+
+  // Wire action buttons
+  grid.querySelectorAll('[data-like]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleLike(btn.dataset.like, btn); });
+  });
+  grid.querySelectorAll('[data-save]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleSave(btn.dataset.save, btn); });
+  });
+  grid.querySelectorAll('.nif-card[data-id]').forEach(card => {
+    card.addEventListener('click', () => openNIF(card.dataset.id));
+  });
+}
+
+function cardHTML(n) {
+  const creator    = n.display_name ?? n.username ?? 'Creator';
+  const initials   = creator[0]?.toUpperCase() ?? '?';
+  const gaussians  = n.gaussian_count ? (n.gaussian_count / 1000).toFixed(0) + 'K pts' : '';
+  const liked      = state.likedSet.has(n.id);
+  const saved      = state.savedSet.has(n.id) || n.viewer_saved;
+  const likedFlag  = n.viewer_liked || liked;
+  const vertical   = n.vertical ?? '';
+  const vertLabels = { automotive:'🚗', fashion:'👗', property:'🏠', mining:'⛏', agriculture:'🌾', generic:'⬡' };
+
+  return `
+    <div class="nif-card" data-id="${n.id}">
+      <div class="card-thumb">
+        ${n.thumbnail_url
+          ? `<img src="${n.thumbnail_url}" alt="${_esc(n.title ?? '')}" loading="lazy" />`
+          : `<div class="card-thumb-placeholder">⬡</div>`}
+        <div class="card-overlay">
+          <div class="card-play-btn">▶</div>
+        </div>
+        ${gaussians ? `<div class="card-gaussian-badge">${gaussians}</div>` : ''}
+        ${vertical  ? `<div class="card-vertical-badge">${vertLabels[vertical] ?? '⬡'} ${vertical}</div>` : ''}
+      </div>
+
+      <div class="card-actions">
+        <button class="action-btn-circle ${likedFlag ? 'liked' : ''}" data-like="${n.id}"
+          title="${likedFlag ? 'Unlike' : 'Like'}">
+          ${likedFlag ? '♥' : '♡'}
+        </button>
+        <button class="action-btn-circle ${saved ? 'saved' : ''}" data-save="${n.id}"
+          title="${saved ? 'Unsave' : 'Save'}">
+          ${saved ? '★' : '☆'}
+        </button>
+      </div>
+
+      <div class="card-info">
+        <div class="card-creator">
+          <div class="creator-avatar">
+            ${n.avatar_url ? `<img src="${n.avatar_url}" alt="" />` : initials}
+          </div>
+          <span class="creator-name">
+            ${_esc(creator)}
+            ${n.verified ? '<span class="verified-badge">✓</span>' : ''}
+            ${n.is_brand  ? '<span class="brand-badge">BRAND</span>' : ''}
+          </span>
+        </div>
+        <div class="card-title">${_esc(n.title ?? 'Untitled')}</div>
+        <div class="card-stats">
+          <span class="card-stat">♥ ${_fmt(n.like_count ?? 0)}</span>
+          <span class="card-stat">◉ ${_fmt(n.view_count ?? 0)}</span>
+          <span class="card-stat">${_timeAgo(n.created_at)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function toggleLike(nifId, btn) {
+  if (!state.session) { toast('Sign in to like', 'info'); return; }
+  const isLiked = btn.classList.contains('liked');
+  btn.classList.toggle('liked', !isLiked);
+  btn.textContent = isLiked ? '♡' : '♥';
+  if (isLiked) state.likedSet.delete(nifId); else state.likedSet.add(nifId);
+  await fetch(`${API}/nif/${nifId}/like`, {
+    method:  isLiked ? 'DELETE' : 'POST',
+    headers: { 'Authorization': `Bearer ${state.session.access_token}` },
+  }).catch(() => {});
+}
+
+async function toggleSave(nifId, btn) {
+  if (!state.session) { toast('Sign in to save', 'info'); return; }
+  const isSaved = btn.classList.contains('saved');
+  btn.classList.toggle('saved', !isSaved);
+  btn.textContent = isSaved ? '☆' : '★';
+  if (isSaved) state.savedSet.delete(nifId); else state.savedSet.add(nifId);
+  await fetch(`${API}/nif/${nifId}/save`, {
+    method:  isSaved ? 'DELETE' : 'POST',
+    headers: { 'Authorization': `Bearer ${state.session.access_token}` },
+  }).catch(() => {});
+}
+
+function openNIF(nifId) {
+  window.location.href = `/v/${nifId}`;
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+let _searchTimer;
+document.getElementById('search-input')?.addEventListener('input', (e) => {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(async () => {
+    const q = e.target.value.trim();
+    if (!q) { loadFeed(true); return; }
+    state.loading = true;
+    renderSkeletons();
+    const res  = await fetch(`${API}/discover?q=${encodeURIComponent(q)}&limit=40`);
+    const data = await res.json();
+    state.items = data ?? [];
+    renderCards(state.items, true);
+    state.loading = false;
+  }, 400);
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _esc(s)  { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function _fmt(n)  { return n >= 1000 ? (n/1000).toFixed(1)+'K' : n; }
+function _timeAgo(ts) {
+  const s = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (s < 60)   return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm';
+  if (s < 86400)return Math.floor(s/3600) + 'h';
+  return Math.floor(s/86400) + 'd';
+}
+
+function toast(msg, type='info') {
+  const colors = { success:'#3ecfcf', error:'#f06060', info:'#7c6dfa', warn:'#f0c030' };
+  const el = document.createElement('div');
+  el.style.cssText = `background:#141414;border:1px solid ${colors[type]||colors.info}33;
+    border-left:3px solid ${colors[type]||colors.info};border-radius:8px;
+    padding:9px 14px;font-size:12px;color:#e8e8e8;
+    box-shadow:0 4px 24px #00000080;max-width:260px;
+    font-family:'Syne',sans-serif;animation:toastIn .2s ease;pointer-events:none;`;
+  el.textContent = msg;
+  const style = document.createElement('style');
+  style.textContent = '@keyframes toastIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}';
+  document.head.appendChild(style);
+  document.getElementById('toast-root').appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

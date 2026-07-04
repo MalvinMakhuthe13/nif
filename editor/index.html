@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NIF Presentation Editor · fumoca.co.za</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #0a0a0a;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: #e8e8e8;
+    overflow: hidden;
+  }
+
+  /* ── Auth gate ─────────────────────────────────────────────────────────── */
+  #auth-gate {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #0a0a0a; z-index: 100;
+    gap: 20px;
+  }
+  #auth-gate.hidden { display: none; }
+
+  .auth-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 40px;
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .auth-logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .auth-logo-mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #7c6dfa, #3ecfcf);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; color: #fff;
+  }
+  .auth-title { font-size: 20px; font-weight: 700; }
+  .auth-sub   { font-size: 13px; color: #666; line-height: 1.5; }
+
+  .auth-input {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    color: #e8e8e8;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s;
+    font-family: inherit;
+  }
+  .auth-input:focus { border-color: #7c6dfa66; }
+
+  .auth-btn {
+    background: linear-gradient(135deg, #7c6dfa, #5b52e8);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .15s;
+  }
+  .auth-btn:hover { opacity: .9; }
+  .auth-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .auth-error {
+    font-size: 12px;
+    color: #f06060;
+    text-align: center;
+    min-height: 16px;
+  }
+
+  /* ── NIF picker (shown when no nifId in URL) ────────────────────────────── */
+  #nif-picker {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #0a0a0a; z-index: 90;
+    gap: 20px;
+    padding: 40px;
+  }
+  #nif-picker.hidden { display: none; }
+
+  .picker-title {
+    font-size: 22px; font-weight: 700;
+    color: #fff; text-align: center;
+  }
+  .picker-sub {
+    font-size: 13px; color: #666; text-align: center;
+    max-width: 400px; line-height: 1.6;
+  }
+  .nif-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    max-width: 900px; width: 100%;
+    max-height: 60vh; overflow-y: auto;
+  }
+  .nif-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .nif-card:hover {
+    border-color: #7c6dfa66;
+    transform: translateY(-2px);
+  }
+  .nif-card-thumb {
+    width: 100%; aspect-ratio: 16/9;
+    background: #1a1a1a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; color: #333;
+    overflow: hidden;
+  }
+  .nif-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .nif-card-info {
+    padding: 10px 12px;
+  }
+  .nif-card-title {
+    font-size: 12px; font-weight: 600; color: #ccc;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nif-card-meta {
+    font-size: 10px; color: #555; margin-top: 3px;
+  }
+
+  /* ── Main editor container ───────────────────────────────────────────────── */
+  #editor-root {
+    width: 100%; height: 100%;
+  }
+  #editor-root.hidden { display: none; }
+
+  /* ── Loading spinner ─────────────────────────────────────────────────────── */
+  #loader {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #0a0a0a; z-index: 200;
+    flex-direction: column; gap: 16px;
+  }
+  #loader.hidden { display: none; }
+
+  .spin {
+    width: 40px; height: 40px;
+    border: 3px solid #222;
+    border-top-color: #7c6dfa;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-label {
+    font-size: 13px; color: #555;
+  }
+</style>
+<!-- DM Sans font -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loader">
+  <div class="spin"></div>
+  <div class="loader-label" id="loader-label">Loading…</div>
+</div>
+
+<!-- Auth Gate -->
+<div id="auth-gate" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">N</div>
+      <div>
+        <div class="auth-title">NIF Editor</div>
+      </div>
+    </div>
+    <p class="auth-sub">Sign in to create and export NIF presentations.</p>
+    <input id="auth-email" type="email" class="auth-input" placeholder="Email" autocomplete="email" />
+    <input id="auth-password" type="password" class="auth-input" placeholder="Password" autocomplete="current-password" />
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-btn" id="auth-btn">Sign In</button>
+  </div>
+</div>
+
+<!-- NIF Picker (when no nifId in URL) -->
+<div id="nif-picker" class="hidden">
+  <div class="picker-title">Choose a NIF to present</div>
+  <p class="picker-sub">Select a NIF file to create a video presentation from.</p>
+  <div class="nif-grid" id="nif-grid"></div>
+</div>
+
+<!-- Editor root (NIFPresentationEditor mounts here) -->
+<div id="editor-root" class="hidden"></div>
+
+<script src="../config.js"></script>
+<script type="module">
+  // ─── Config ────────────────────────────────────────────────────────────────
+  const cfg          = window.NIF_CONFIG ?? {};
+  const API          = cfg.apiBase          ?? 'https://api.fumoca.co.za/api';
+  const SUPABASE_URL = cfg.supabaseUrl      ?? '';
+  const SUPABASE_KEY = cfg.supabaseAnonKey  ?? '';
+
+  // Lazy-load scene editor only when the user opens it
+  let _sceneEditorModule = null;
+  async function loadSceneEditor(container, renderer, gaussians, nifId, token) {
+    if (!_sceneEditorModule) {
+      _sceneEditorModule = await import('/editor/NIFSceneEditor.js');
+    }
+    return _sceneEditorModule.mountNIFSceneEditor(container, renderer, gaussians, nifId, token, API);
+  }
+
+  window._loadSceneEditor = loadSceneEditor;
+
+  // ─── Bootstrap ─────────────────────────────────────────────────────────────
+  let token  = localStorage.getItem('nif_token');
+  let nifId  = new URLSearchParams(location.search).get('nif');
+
+  setLoader('Checking session…');
+
+  if (!token) {
+    // Need auth
+    hideLoader();
+    showAuthGate();
+  } else {
+    // Validate token
+    await validateToken();
+  }
+
+  // ─── Auth Gate ─────────────────────────────────────────────────────────────
+  function showAuthGate() {
+    document.getElementById('auth-gate').classList.remove('hidden');
+  }
+  function hideAuthGate() {
+    document.getElementById('auth-gate').classList.add('hidden');
+  }
+
+  document.getElementById('auth-btn').addEventListener('click', async () => {
+    const email = document.getElementById('auth-email').value.trim();
+    const pass  = document.getElementById('auth-password').value;
+    const errEl = document.getElementById('auth-error');
+    const btn   = document.getElementById('auth-btn');
+
+    if (!email || !pass) { errEl.textContent = 'Enter email and password.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    errEl.textContent = '';
+
+    try {
+      const res  = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey':        SUPABASE_KEY,
+        },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.access_token) {
+        throw new Error(data.error_description ?? data.msg ?? 'Sign-in failed');
+      }
+      token = data.access_token;
+      localStorage.setItem('nif_token', token);
+      hideAuthGate();
+      await postAuth();
+    } catch (err) {
+      errEl.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+
+  async function validateToken() {
+    try {
+      const res = await fetch(`${API}/health`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Invalid token');
+      await postAuth();
+    } catch {
+      localStorage.removeItem('nif_token');
+      token = null;
+      hideLoader();
+      showAuthGate();
+    }
+  }
+
+  // ─── Post-auth: show picker or go straight to editor ──────────────────────
+  async function postAuth() {
+    if (nifId) {
+      await launchEditor(nifId);
+    } else {
+      await showNIFPicker();
+    }
+  }
+
+  // ─── NIF Picker ───────────────────────────────────────────────────────────
+  async function showNIFPicker() {
+    setLoader('Loading your NIF files…');
+
+    const res  = await fetch(`${API}/nif`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const nifs = await res.json();
+
+    hideLoader();
+
+    const picker = document.getElementById('nif-picker');
+    const grid   = document.getElementById('nif-grid');
+
+    if (!nifs.length) {
+      grid.innerHTML = `<p style="color:#666;font-size:13px;grid-column:1/-1;text-align:center;">
+        No NIF files yet. Upload a capture first.
+      </p>`;
+    } else {
+      grid.innerHTML = nifs.map(n => `
+        <div class="nif-card" data-id="${n.id}">
+          <div class="nif-card-thumb">
+            ${n.thumbnail_url
+              ? `<img src="${n.thumbnail_url}" alt="${n.title ?? 'NIF'}" loading="lazy" />`
+              : '⬡'}
+          </div>
+          <div class="nif-card-info">
+            <div class="nif-card-title">${n.title || 'Untitled NIF'}</div>
+            <div class="nif-card-meta">
+              ${n.gaussian_count?.toLocaleString() ?? '—'} points ·
+              ${n.vertical ?? 'generic'}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.nif-card');
+        if (!card) return;
+        const id = card.dataset.id;
+        picker.classList.add('hidden');
+        launchEditor(id);
+      });
+    }
+
+    picker.classList.remove('hidden');
+  }
+
+  // ─── Launch Editor ────────────────────────────────────────────────────────
+  async function launchEditor(id) {
+    nifId = id;
+    setLoader('Loading NIF…');
+
+    const editorRoot = document.getElementById('editor-root');
+    editorRoot.classList.remove('hidden');
+
+    try {
+      const { NIFPresentationEditor } = await import('/editor/NIFPresentationEditor.js');
+
+      const editor = new NIFPresentationEditor(editorRoot, {
+        nifId:   id,
+        token:   token,
+        api:     API,
+        onSave:  (pId) => {
+          // Update URL with presentation ID for bookmarking
+          const u = new URL(location.href);
+          u.searchParams.set('nif', id);
+          u.searchParams.set('pid', pId);
+          history.replaceState(null, '', u);
+        },
+        onExport: ({ videoUrl, shareUrl }) => {
+          console.log('[Editor] Export complete', { videoUrl, shareUrl });
+        },
+      });
+
+      hideLoader();
+      await editor.mount();
+
+      // ── Inject Scene Editor button after presentation editor mounts ──────────
+      setTimeout(() => {
+        // Find the mode button bar (first button group in the editor root)
+        const firstBtn = editorRoot.querySelector('button');
+        const modeBar  = firstBtn?.parentElement;
+        if (!modeBar || modeBar.querySelector('#btn-scene-editor')) return;
+
+        const btn = document.createElement('button');
+        btn.id = 'btn-scene-editor';
+        btn.title = 'Scene Editor — sculpt, lighting, depth of field, mesh prep';
+        btn.textContent = '⬡ Scene Editor';
+        btn.style.cssText = [
+          'background:rgba(62,207,207,.12)', 'color:#3ecfcf',
+          'border:1px solid rgba(62,207,207,.3)', 'border-radius:6px',
+          'padding:5px 12px', 'font-size:11px', 'cursor:pointer',
+          'font-family:inherit', 'margin-left:8px', 'transition:all .15s',
+        ].join(';');
+        btn.onmouseenter = () => btn.style.background = 'rgba(62,207,207,.22)';
+        btn.onmouseleave = () => btn.style.background = 'rgba(62,207,207,.12)';
+        modeBar.appendChild(btn);
+
+        btn.addEventListener('click', async () => {
+          // Get renderer + gaussians from the presentation editor
+          const renderer  = editor._renderer  ?? editor.renderer;
+          const gaussians = editor._gaussians ?? editor.gaussians;
+          if (!renderer || !gaussians) {
+            alert('NIF still loading — please wait a moment and try again.');
+            return;
+          }
+
+          editor.pause?.();
+
+          // Fullscreen overlay for the scene editor
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;flex-direction:column;';
+
+          const bar = document.createElement('div');
+          bar.style.cssText = 'height:38px;background:#111;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;';
+          bar.innerHTML = `
+            <button id="scene-back" style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;font-family:inherit;">← Back</button>
+            <span style="font-size:10px;color:#333;">|</span>
+            <span style="font-size:11px;color:#555;">✦ NIF Scene Editor · sculpt · light · depth · mesh</span>
+          `;
+          const editorDiv = document.createElement('div');
+          editorDiv.style.cssText = 'flex:1;overflow:hidden;';
+          overlay.appendChild(bar);
+          overlay.appendChild(editorDiv);
+          document.body.appendChild(overlay);
+
+          const sceneEditor = await loadSceneEditor(editorDiv, renderer, gaussians, id, token);
+
+          document.getElementById('scene-back')?.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            editor.resume?.();
+            // Push any edits back to the renderer
+            if (sceneEditor?.gaussians) renderer.loadGaussians(sceneEditor.gaussians);
+          });
+        });
+      }, 900);
+
+    } catch (err) {
+      console.error('[Editor launch]', err);
+      editorRoot.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#f06060;font-size:14px;">
+          Failed to load editor: ${err.message}
+        </div>
+      `;
+      hideLoader();
+    }
+  }
+
+  // ─── Loader helpers ──────────────────────────────────────────────────────
+  function setLoader(label) {
+    document.getElementById('loader-label').textContent = label;
+    document.getElementById('loader').classList.remove('hidden');
+  }
+  function hideLoader() {
+    document.getElementById('loader').classList.add('hidden');
+  }
+</script>
+</body>
+</html>

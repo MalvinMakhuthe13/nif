@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>NIF · fumoca.co.za</title>
+<meta name="description" content="Film anything for 30 seconds. We rebuild it in 4D. Share it everywhere. Print it."/>
+<meta property="og:title" content="NIF — Neural Interactive Format"/>
+<meta property="og:description" content="Film anything. Rebuilt in 4D. Share everywhere. Print it."/>
+<meta name="theme-color" content="#060608"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#060608;--deep:#0c0c10;--surface:#13131a;
+  --rim:rgba(255,255,255,0.06);--rim2:rgba(255,255,255,0.11);
+  --text:#f2f1ef;--muted:#6b6a72;--dim:#2e2d36;
+  --violet:#7b5ef8;--cyan:#2edcdc;
+  --glow:rgba(123,94,248,0.16);--glow2:rgba(46,220,220,0.10);
+  --r:16px;--rr:24px;
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{
+  background:var(--void);color:var(--text);
+  font-family:'Instrument Sans',sans-serif;
+  font-size:16px;line-height:1.6;
+  overflow-x:hidden;min-height:100vh;
+}
+
+/* GRAIN */
+body::after{
+  content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:0.45;
+}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:18px clamp(20px,5vw,48px);
+  display:flex;align-items:center;justify-content:space-between;
+}
+nav::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(6,6,8,0.9) 0%,transparent 100%);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  mask:linear-gradient(to bottom,black 50%,transparent 100%);
+  pointer-events:none;
+}
+.logo{
+  position:relative;
+  font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:0.12em;
+  color:var(--text);display:flex;align-items:center;gap:9px;
+}
+.logo-mark{
+  width:26px;height:26px;background:var(--violet);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  box-shadow:0 0 18px rgba(123,94,248,0.55);
+}
+.nav-cta{
+  position:relative;
+  font-size:13px;font-weight:600;color:var(--text);
+  background:rgba(255,255,255,0.06);border:1px solid var(--rim2);
+  padding:8px 18px;border-radius:100px;text-decoration:none;
+  transition:background .2s,border-color .2s;letter-spacing:0.01em;
+}
+.nav-cta:hover{background:rgba(255,255,255,0.11);border-color:rgba(255,255,255,0.2)}
+
+/* HERO */
+.hero{
+  min-height:100dvh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:100px clamp(20px,6vw,80px) 60px;
+  position:relative;overflow:hidden;
+}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none}
+.blob-1{
+  width:min(700px,140vw);height:min(700px,140vw);
+  background:var(--glow);top:-15%;left:50%;transform:translateX(-50%);
+  animation:breathe 9s ease-in-out infinite;
+}
+.blob-2{
+  width:min(500px,100vw);height:min(500px,100vw);
+  background:var(--glow2);bottom:-10%;right:-15%;
+  animation:breathe 11s ease-in-out 3s infinite reverse;
+}
+@keyframes breathe{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:0.65;transform:translateX(-50%) scale(1.12)}}
+
+#rc{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none;opacity:0.45}
+
+.hi{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
+
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--cyan);
+  background:rgba(46,220,220,0.07);border:1px solid rgba(46,220,220,0.2);
+  padding:5px 14px;border-radius:100px;margin-bottom:clamp(24px,4vh,40px);
+  opacity:0;animation:rise .9s cubic-bezier(.16,1,.3,1) .1s forwards;
+}
+.chip-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(80px,18vw,190px);
+  line-height:.87;letter-spacing:-.01em;
+  opacity:0;animation:rise 1s cubic-bezier(.16,1,.3,1) .25s forwards;
+}
+h1 .la{display:block;color:var(--text)}
+h1 .lb{
+  display:block;
+  background:linear-gradient(105deg,var(--violet) 15%,var(--cyan) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+.sub{
+  margin-top:clamp(20px,3vh,32px);
+  font-size:clamp(15px,2.2vw,20px);color:var(--muted);font-weight:400;
+  max-width:440px;line-height:1.65;
+  opacity:0;animation:rise 1s cubic-bezier(.16,1,.3,1) .4s forwards;
+}
+.sub strong{color:var(--text);font-weight:500}
+
+.actions{
+  display:flex;gap:12px;margin-top:clamp(32px,5vh,52px);
+  flex-wrap:wrap;justify-content:center;
+  opacity:0;animation:rise 1s cubic-bezier(.16,1,.3,1) .55s forwards;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Instrument Sans',sans-serif;
+  font-size:15px;font-weight:600;color:#fff;
+  background:var(--violet);padding:14px 32px;border-radius:100px;
+  text-decoration:none;position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s;
+  box-shadow:0 0 0 0 rgba(123,94,248,0);
+}
+.btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 60%);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(123,94,248,.5)}
+.btn-g{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:500;color:var(--muted);
+  padding:14px 24px;border-radius:100px;text-decoration:none;
+  transition:color .2s;
+}
+.btn-g:hover{color:var(--text)}
+.arr{font-size:18px;transition:transform .2s;display:inline-block}
+.btn:hover .arr{transform:translateX(3px)}
+
+/* CARDS */
+.cards{
+  padding:clamp(60px,10vh,120px) clamp(20px,5vw,48px);
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  max-width:1100px;margin:0 auto;
+  opacity:0;animation:rise 1s cubic-bezier(.16,1,.3,1) .7s forwards;
+}
+.card{
+  background:var(--surface);border:1px solid var(--rim);border-radius:var(--rr);
+  padding:clamp(24px,4vw,40px);position:relative;overflow:hidden;
+  transition:border-color .3s,transform .3s;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);
+}
+.card:hover{border-color:var(--rim2);transform:translateY(-3px)}
+.cn{
+  font-family:'Bebas Neue',sans-serif;font-size:62px;line-height:1;
+  color:var(--dim);margin-bottom:14px;display:block;
+}
+.ct{font-size:clamp(17px,2.5vw,21px);font-weight:600;margin-bottom:9px;letter-spacing:-.01em}
+.cb{font-size:14px;color:var(--muted);line-height:1.75}
+.ca{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  opacity:0;transition:opacity .3s;
+}
+.card:hover .ca{opacity:1}
+.c1 .ca{background:linear-gradient(90deg,var(--violet),transparent)}
+.c2 .ca{background:linear-gradient(90deg,var(--cyan),transparent)}
+.c3 .ca{background:linear-gradient(90deg,#f04f80,transparent)}
+
+/* HOW */
+.how{
+  padding:clamp(60px,10vh,120px) clamp(20px,5vw,48px);
+  max-width:780px;margin:0 auto;
+}
+.ey{
+  font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--violet);margin-bottom:18px;
+}
+.st{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(44px,8vw,80px);line-height:.9;letter-spacing:-.01em;
+  margin-bottom:clamp(40px,7vh,72px);
+}
+.st em{
+  font-style:normal;
+  background:linear-gradient(105deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.steps{display:flex;flex-direction:column}
+.step{
+  display:grid;grid-template-columns:48px 1fr;gap:22px;
+  padding:28px 0;border-bottom:1px solid var(--rim);
+}
+.step:last-child{border-bottom:none}
+.sn{
+  font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:1;
+  color:var(--dim);padding-top:2px;
+}
+.sc{padding-top:2px}
+.stl{font-size:clamp(16px,2.5vw,19px);font-weight:600;margin-bottom:7px;letter-spacing:-.01em}
+.sb{font-size:14px;color:var(--muted);line-height:1.75;max-width:520px}
+
+/* CTA */
+.cta{
+  margin:0 clamp(20px,5vw,48px) clamp(60px,10vh,120px);
+  border-radius:var(--rr);background:var(--surface);border:1px solid var(--rim);
+  padding:clamp(48px,8vw,96px) clamp(24px,5vw,80px);
+  text-align:center;position:relative;overflow:hidden;
+}
+.cta::before{
+  content:'';position:absolute;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(123,94,248,.09) 0%,transparent 70%);
+  top:-200px;left:50%;transform:translateX(-50%);pointer-events:none;
+}
+.cta-t{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(52px,9vw,100px);line-height:.9;letter-spacing:-.01em;
+  margin-bottom:clamp(16px,3vh,26px);
+}
+.cta-t .gt{
+  background:linear-gradient(105deg,var(--violet) 0%,var(--cyan) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.cta-s{
+  font-size:clamp(14px,2vw,17px);color:var(--muted);
+  margin:0 auto clamp(28px,5vh,44px);
+  max-width:360px;line-height:1.65;
+}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--rim);
+  padding:clamp(28px,5vh,40px) clamp(20px,5vw,48px);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+}
+.fl{
+  font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.1em;
+  display:flex;align-items:center;gap:8px;color:var(--muted);
+}
+.fld{width:6px;height:6px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet)}
+.fr{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.fla{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s}
+.fla:hover{color:var(--text)}
+
+/* REVEAL */
+.rev{
+  opacity:0;transform:translateY(26px);
+  transition:opacity .75s cubic-bezier(.16,1,.3,1),transform .75s cubic-bezier(.16,1,.3,1);
+}
+.rev.in{opacity:1;transform:none}
+
+@keyframes rise{
+  from{opacity:0;transform:translateY(26px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* MOBILE */
+@media(max-width:700px){
+  .cards{grid-template-columns:1fr;gap:10px}
+  .step{grid-template-columns:36px 1fr;gap:14px}
+  .sn{font-size:32px}
+  .cta{margin:0 16px 60px}
+  .actions{flex-direction:column;width:100%}
+  .btn,.btn-g{width:100%;justify-content:center}
+}
+@media(max-width:400px){
+  h1{font-size:clamp(68px,20vw,85px)}
+}
+
+/* SCANLINE */
+.sl{position:fixed;inset:0;z-index:998;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.012) 2px,rgba(0,0,0,.012) 4px)}
+</style>
+</head>
+<body>
+
+<div class="sl"></div>
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark">✦</div>
+    NIF
+  </div>
+  <a href="/dashboard" class="nav-cta">Open app →</a>
+</nav>
+
+<section class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <canvas id="rc" width="680" height="680"></canvas>
+
+  <div class="hi">
+    <div class="chip">
+      <span class="chip-dot"></span>
+      Neural Interactive Format
+    </div>
+
+    <h1>
+      <span class="la">Film it.</span>
+      <span class="lb">Live it.</span>
+    </h1>
+
+    <p class="sub">
+      Point your phone at anything.
+      We turn it into an <strong>interactive 4D scene</strong>
+      you can share, embed, and print — in minutes.
+    </p>
+
+    <div class="actions">
+      <a href="/dashboard" class="btn">Start now <span class="arr">→</span></a>
+      <a href="#how" class="btn-g">See how it works</a>
+    </div>
+  </div>
+</section>
+
+<div class="cards">
+  <div class="card c1">
+    <span class="cn">01</span>
+    <div class="ct">Capture once</div>
+    <div class="cb">30 seconds with your phone. Walk around anything — a person, product, or space. No studio. No equipment. No skill required.</div>
+    <div class="ca"></div>
+  </div>
+  <div class="card c2">
+    <span class="cn">02</span>
+    <div class="ct">Share everywhere</div>
+    <div class="cb">Plays as a video on Instagram, WhatsApp, and TikTok. On a website it becomes a fully interactive 4D experience — orbit, zoom, explore.</div>
+    <div class="ca"></div>
+  </div>
+  <div class="card c3">
+    <span class="cn">03</span>
+    <div class="ct">Print the moment</div>
+    <div class="cb">From the same capture — figurine, bobblehead, bust, keychain, ornament. Download your STL in minutes. Print at home or any shop.</div>
+    <div class="ca"></div>
+  </div>
+</div>
+
+<section class="how" id="how">
+  <p class="ey rev">How it works</p>
+  <h2 class="st rev">Four steps.<br><em>No expertise.</em></h2>
+
+  <div class="steps">
+    <div class="step rev">
+      <div class="sn">1</div>
+      <div class="sc">
+        <div class="stl">Film your subject</div>
+        <div class="sb">Walk slowly around it for 15–30 seconds. Any phone, any lighting. The more angles you cover, the richer the result.</div>
+      </div>
+    </div>
+    <div class="step rev" style="transition-delay:.08s">
+      <div class="sn">2</div>
+      <div class="sc">
+        <div class="stl">Upload and reconstruct</div>
+        <div class="sb">Drop your video into the dashboard. Our GPU pipeline extracts depth, removes the background, and rebuilds the full 4D scene with real colour and geometry.</div>
+      </div>
+    </div>
+    <div class="step rev" style="transition-delay:.16s">
+      <div class="sn">3</div>
+      <div class="sc">
+        <div class="stl">Edit and perfect</div>
+        <div class="sb">Open the scene editor. Isolate your subject, adjust lighting, set depth-of-field. Remove the background in one click. The Photoshop of spatial captures.</div>
+      </div>
+    </div>
+    <div class="step rev" style="transition-delay:.24s">
+      <div class="sn">4</div>
+      <div class="sc">
+        <div class="stl">Share, embed, print</div>
+        <div class="sb">Share to any platform as a video. Embed interactively on any website with one script tag. Send to the 3D print pipeline and download your STL in minutes.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta rev">
+  <h2 class="cta-t">
+    Your world.<br>
+    <span class="gt">In 4D.</span>
+  </h2>
+  <p class="cta-s">No app to download. No 3D experience needed.<br>Just your phone and 30 seconds.</p>
+  <a href="/dashboard" class="btn" style="font-size:16px;padding:15px 40px;">
+    Create your first NIF <span class="arr">→</span>
+  </a>
+</div>
+
+<footer>
+  <div class="fl"><div class="fld"></div>NIF · FUMOCA</div>
+  <div class="fr">
+    <a href="/dashboard" class="fla">Dashboard</a>
+    <a href="/feed" class="fla">Feed</a>
+    <a href="/print" class="fla">3D Print</a>
+    <a href="/editor" class="fla">Editor</a>
+    <a href="mailto:hello@fumoca.co.za" class="fla">hello@fumoca.co.za</a>
+  </div>
+</footer>
+
+<script>
+// ── Ring canvas ──────────────────────────────────────────────────────────────
+(function(){
+  const cv=document.getElementById('rc');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,cx=W/2,cy=H/2;
+  let t=0;
+
+  function sz(){
+    const vw=Math.min(window.innerWidth*.92,680);
+    cv.style.width=vw+'px';cv.style.height=vw+'px';
+  }
+  sz(); window.addEventListener('resize',sz);
+
+  function ring(r,spd,dash,gap,col,w,off){
+    ctx.save();
+    ctx.translate(cx,cy);ctx.rotate(t*spd+off);ctx.translate(-cx,-cy);
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.setLineDash([dash,gap]);ctx.strokeStyle=col;
+    ctx.lineWidth=w;ctx.globalAlpha=.45;ctx.stroke();
+    ctx.restore();
+  }
+
+  function dots(r,n,spd,col,sz,off){
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2+t*spd+off;
+      ctx.beginPath();
+      ctx.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r,sz,0,Math.PI*2);
+      ctx.fillStyle=col;ctx.globalAlpha=.65;ctx.fill();
+    }
+  }
+
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    t+=.0025;
+    ring(290,-0.28,44,22,'rgba(123,94,248,.35)',1,0);
+    ring(250, 0.45,22,44,'rgba(46,220,220,.28)',1,1);
+    ring(210,-0.65,55,14,'rgba(123,94,248,.18)',.6,2);
+    ring(170, 0.38,28,10,'rgba(46,220,220,.22)',1,.5);
+    dots(290,6,-0.28,'rgba(123,94,248,.9)',2.5,0);
+    dots(250,4, 0.45,'rgba(46,220,220,.9)',2,.8);
+    dots(210,8,-0.65,'rgba(255,255,255,.4)',1.5,1.2);
+    dots(170,3, 0.38,'rgba(123,94,248,.7)',2,.3);
+    ctx.globalAlpha=1;
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+// ── Scroll reveal ────────────────────────────────────────────────────────────
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target);}});
+},{threshold:.1});
+document.querySelectorAll('.rev').forEach(el=>obs.observe(el));
+
+// ── Smooth anchor ────────────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+
+// ── Button ripple + navigate ──────────────────────────────────────────────────
+// Every .btn that points to /dashboard gets a ripple on click then navigates.
+function addRipple(btn){
+  btn.style.overflow='hidden';
+  btn.addEventListener('click',function(e){
+    const href=btn.getAttribute('href');
+    if(!href||href.startsWith('#')) return;   // let anchor-links pass through
+    e.preventDefault();
+
+    // Ripple element
+    const ripple=document.createElement('span');
+    const rect=btn.getBoundingClientRect();
+    const size=Math.max(rect.width,rect.height)*2.2;
+    const x=e.clientX-rect.left-size/2;
+    const y=e.clientY-rect.top-size/2;
+    ripple.style.cssText=`
+      position:absolute;width:${size}px;height:${size}px;
+      left:${x}px;top:${y}px;border-radius:50%;
+      background:rgba(255,255,255,0.22);
+      transform:scale(0);pointer-events:none;
+      animation:ripple-grow .5s cubic-bezier(.16,1,.3,1) forwards;
+    `;
+    btn.appendChild(ripple);
+
+    // Brief scale-down on the button
+    btn.style.transition='transform .12s cubic-bezier(.16,1,.3,1)';
+    btn.style.transform='scale(0.96)';
+
+    setTimeout(()=>{
+      btn.style.transform='scale(1)';
+    },120);
+
+    // Navigate after the ripple peaks
+    setTimeout(()=>{
+      window.location.href=href;
+    },320);
+
+    // Clean up ripple element
+    setTimeout(()=>{ ripple.remove(); }, 600);
+  });
+}
+
+// Add ripple animation keyframe dynamically
+const ks=document.createElement('style');
+ks.textContent=`
+  @keyframes ripple-grow{
+    to{ transform:scale(1); opacity:0; }
+  }
+`;
+document.head.appendChild(ks);
+
+// Wire up every .btn and .nav-cta
+document.querySelectorAll('.btn,.nav-cta').forEach(addRipple);
+
+// ── Subtle parallax (desktop only) ──────────────────────────────────────────
+if(window.innerWidth>700){
+  document.addEventListener('mousemove',e=>{
+    const rx=(e.clientX/window.innerWidth-.5)*12;
+    const ry=(e.clientY/window.innerHeight-.5)*8;
+    const hi=document.querySelector('.hi');
+    const rc=document.getElementById('rc');
+    if(hi)hi.style.transform=`translate(${rx*.35}px,${ry*.35}px)`;
+    if(rc)rc.style.transform=`translate(calc(-50% + ${rx}px),calc(-55% + ${ry*.7}px))`;
+  });
+}
+</script>
+</body>
+</html>

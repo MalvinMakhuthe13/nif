@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NIF Platform · fumoca.co.za</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="../../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--bg2:#0c0c12;--bg3:#13131c;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0f8;--text2:#8888aa;--text3:#44445a;
+  --accent:#7c6dfa;--accent2:#a594ff;
+  --gold:#f0c060;--green:#3ddc97;--red:#ff5566;--amber:#ffaa44;
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:10px;--r2:16px;
+}
+html,body,#root{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+*::-webkit-scrollbar{width:4px}
+*::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--font);cursor:pointer}
+
+/* ── Auth ─────────────────────────────────────────────────────────────────── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+.auth-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.4}
+.auth-glow{position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(124,109,250,0.15) 0%,transparent 70%)}
+.auth-card{width:100%;max-width:380px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);padding:32px;position:relative}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.auth-logo-name{font-size:28px;font-weight:800;letter-spacing:-0.03em}
+.auth-tabs{display:flex;gap:3px;background:var(--bg3);border-radius:8px;padding:3px;margin-bottom:24px}
+.auth-tab{flex:1;padding:8px;border-radius:6px;border:none;background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.auth-tab.active{background:var(--bg2);color:var(--text)}
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:0.5px solid var(--border);display:flex;flex-direction:column;height:100vh}
+.sidebar-logo{padding:20px;border-bottom:0.5px solid var(--border)}
+.sidebar-logo-tag{font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.sidebar-logo-name{font-size:17px;font-weight:800;letter-spacing:-0.02em}
+.sidebar-nav{flex:1;padding:10px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;width:100%;text-align:left}
+.nav-item.active{background:rgba(124,109,250,0.1);color:var(--accent2);font-weight:600}
+.nav-item:hover:not(.active){background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-icon{font-size:14px;width:16px;text-align:center;opacity:0.7;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;background:var(--amber);color:#000;border-radius:999px;padding:1px 6px;font-weight:700}
+.sidebar-user{padding:12px;border-top:0.5px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg3)}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-email{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-plan{font-size:10px;color:var(--text3)}
+.sign-out-btn{background:none;border:none;color:var(--text3);font-size:15px;padding:2px;transition:color 0.15s}
+.sign-out-btn:hover{color:var(--text)}
+.main{flex:1;overflow-y:auto}
+
+/* ── Shared components ────────────────────────────────────────────────────── */
+.page{padding:32px 40px;max-width:1080px;margin:0 auto}
+.page-header{margin-bottom:28px}
+.page-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.page-title{font-size:28px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2)}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2);transition:border-color 0.15s}
+.card.hover:hover{border-color:var(--border2)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--r);font-family:var(--font);font-size:13px;font-weight:600;border:none;transition:all 0.15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;border:0.5px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--border);color:var(--text)}
+.btn-gold{background:var(--gold);color:#000}
+.btn-gold:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.input{background:var(--bg3);border:0.5px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;transition:border-color 0.15s;width:100%}
+.input:focus{border-color:var(--accent)}
+.select{background:var(--bg3);border:0.5px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;width:100%;cursor:pointer}
+.label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:6px;display:block}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase;display:inline-block}
+.field{display:flex;flex-direction:column;gap:6px}
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+.error-msg{font-size:12px;color:var(--red);padding:8px 12px;background:rgba(255,85,102,0.08);border:0.5px solid rgba(255,85,102,0.2);border-radius:var(--r)}
+.success-msg{font-size:12px;color:var(--green);padding:8px 12px;background:rgba(61,220,151,0.08);border:0.5px solid rgba(61,220,151,0.2);border-radius:var(--r)}
+.empty-state{text-align:center;padding:64px 20px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.3}
+.empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.progress-bar-track{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.6s}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp 0.35s ease both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+const SB_URL = (window.NIF_CONFIG?.supabaseUrl) ?? 'https://ijfimuodpvbuwrspzfra.supabase.co';
+const SB_KEY = (window.NIF_CONFIG?.supabaseAnonKey) ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqZmltdW9kcHZidXdyc3B6ZnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MzIzNzgsImV4cCI6MjA5MzUwODM3OH0.rqAwagwnh7VxA-j5vrAo14P07N7ZawYZ9pFE85X517c';
+const sb     = supabase.createClient(SB_URL, SB_KEY);
+
+const API = (window.NIF_CONFIG?.apiBase) ?? 'http://localhost:3001/api';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let state = {
+  user:     null,
+  token:    null,
+  view:     'dashboard',
+  files:    [],
+  jobs:     [],
+  licenses: [],
+  loading:  false,
+  error:    null,
+};
+
+const root = document.getElementById('root');
+
+// ── Supabase auth init ───────────────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    state.user  = session.user;
+    state.token = session.access_token;
+    // Store for viewer/compare/capture pages
+    if (session.access_token) sessionStorage.setItem('nif_token', session.access_token);
+    await loadAll();
+    render();
+  } else {
+    render();
+  }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    state.user  = session?.user  ?? null;
+    state.token = session?.access_token ?? null;
+    if (state.user) { await loadAll(); }
+    else            { state.files=[]; state.jobs=[]; state.licenses=[]; }
+    render();
+  });
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${state.token}`, ...(opts.headers??{}) },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? 'API error');
+  return data;
+}
+
+async function loadAll() {
+  const [files, jobs, licenses] = await Promise.all([
+    api('/nif').catch(()=>[]),
+    api('/jobs').catch(()=>[]),
+    api('/licenses').catch(()=>[]),
+  ]);
+  state.files    = files;
+  state.jobs     = jobs;
+  state.licenses = licenses;
+}
+
+let realtimeSubscribed = false;
+// Realtime: update jobs live
+function subscribeRealtime() {
+  if (!state.user || realtimeSubscribed) return;
+  // Watch reconstruction jobs
+  realtimeSubscribed = true;
+  sb.channel('jobs-live')
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'reconstruction_jobs', filter:`user_id=eq.${state.user.id}` },
+      payload => {
+        state.jobs = state.jobs.map(j => j.id === payload.new.id ? {...j,...payload.new} : j);
+        render();
+      }
+    ).subscribe();
+  // Watch print jobs — update nif file print_r2_keys when complete
+  sb.channel('print-jobs-live')
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'print_jobs', filter:`user_id=eq.${state.user.id}` },
+      async payload => {
+        const j = payload.new;
+        if (j.status === 'complete') {
+          // Reload the nif_file so print_r2_keys reflects new STLs
+          const { data } = await sb.from('nif_files').select('*').eq('id', j.nif_id).single();
+          if (data) state.files = state.files.map(f => f.id === data.id ? data : f);
+        }
+        render();
+      }
+    ).subscribe();
+}
+
+// ── Auth screen ───────────────────────────────────────────────────────────────
+function renderAuth() {
+  root.innerHTML = `
+    <div class="auth-wrap">
+      <div class="auth-grid"></div>
+      <div class="auth-glow"></div>
+      <div class="auth-card fade-up">
+        <div class="auth-logo">
+          <div class="auth-logo-tag">fumoca.co.za</div>
+          <div class="auth-logo-name">NIF Platform</div>
+        </div>
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-in"  onclick="switchAuthTab('in')">Sign In</button>
+          <button class="auth-tab"        id="tab-up"  onclick="switchAuthTab('up')">Sign Up</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px" id="auth-form">
+          <div class="field" id="name-field" style="display:none">
+            <label class="label">Full name</label>
+            <input class="input" id="auth-name" type="text" placeholder="Your name"/>
+          </div>
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"/>
+          </div>
+          <div class="field">
+            <label class="label">Password</label>
+            <input class="input" id="auth-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          </div>
+          <div id="auth-error" style="display:none" class="error-msg"></div>
+          <button class="btn btn-primary" id="auth-btn" style="width:100%;justify-content:center;padding:11px" onclick="doAuth()">
+            Sign In →
+          </button>
+        </div>
+        <div style="margin-top:20px;text-align:center;font-size:11px;color:var(--text3)">
+          © Fumoca Technologies · fumoca.co.za
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('auth-pass').addEventListener('keydown', e => { if(e.key==='Enter') doAuth(); });
+}
+
+let authMode = 'in';
+window.switchAuthTab = (mode) => {
+  authMode = mode;
+  document.getElementById('tab-in').classList.toggle('active', mode==='in');
+  document.getElementById('tab-up').classList.toggle('active', mode==='up');
+  document.getElementById('name-field').style.display = mode==='up' ? 'flex' : 'none';
+  document.getElementById('auth-btn').textContent = mode==='in' ? 'Sign In →' : 'Create Account ✦';
+  document.getElementById('auth-pass').autocomplete = mode==='in' ? 'current-password' : 'new-password';
+};
+
+window.doAuth = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  const name  = document.getElementById('auth-name')?.value.trim() ?? '';
+  const errEl = document.getElementById('auth-error');
+  const btn   = document.getElementById('auth-btn');
+
+  if (!email || !pass) { showAuthError('Email and password required'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
+  errEl.style.display = 'none';
+
+  try {
+    let result;
+    if (authMode === 'in') {
+      result = await sb.auth.signInWithPassword({ email, password: pass });
+    } else {
+      result = await sb.auth.signUp({ email, password: pass, options:{ data:{ full_name: name } } });
+    }
+    if (result.error) throw result.error;
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = authMode==='in' ? 'Sign In →' : 'Create Account ✦';
+    showAuthError(e.message);
+  }
+};
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── App layout ────────────────────────────────────────────────────────────────
+function renderApp() {
+  const activeJobs = state.jobs.filter(j => j.status==='queued'||j.status==='processing').length;
+  const nav = [
+    { id:'dashboard', label:'Dashboard', icon:'◈' },
+    { id:'files',     label:'NIF Files', icon:'◉' },
+    { id:'upload',    label:'Upload',    icon:'↑'  },
+    { id:'jobs',      label:'Jobs',      icon:'⊡', badge: activeJobs||0 },
+    { id:'analytics', label:'Analytics', icon:'📊' },
+    { id:'delivery',  label:'Deliveries',icon:'📦' },
+    { id:'video',     label:'Video Editor', icon:'▶' },
+    { id:'print',     label:'3D Print',  icon:'⬡'  },
+    { id:'licenses',  label:'Licenses',  icon:'⊛'  },
+    { id:'revenue',   label:'Revenue',   icon:'◎'  },
+  ];
+  const email = state.user?.email ?? '';
+  const initials = email[0]?.toUpperCase() ?? '?';
+
+  root.innerHTML = `
+    <div class="app">
+      <div class="sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-tag">fumoca.co.za</div>
+          <div class="sidebar-logo-name">NIF ✦</div>
+        </div>
+        <nav class="sidebar-nav">
+          ${nav.map(n => `
+            <button class="nav-item${state.view===n.id?' active':''}" onclick="setView('${n.id}')">
+              <span class="nav-icon">${n.icon}</span>
+              ${n.label}
+              ${n.badge ? `<span class="nav-badge">${n.badge}</span>` : ''}
+            </button>
+          `).join('')}
+        </nav>
+        <div class="sidebar-user">
+          <div class="user-row">
+            <div class="user-avatar">${initials}</div>
+            <div class="user-info">
+              <div class="user-email">${email}</div>
+              <div class="user-plan">Free plan</div>
+            </div>
+            <button class="sign-out-btn" onclick="doSignOut()" title="Sign out">↩</button>
+          </div>
+        </div>
+      </div>
+      <main class="main" id="main-content">
+        ${renderView()}
+      </main>
+    </div>
+  `;
+}
+
+function renderView() {
+  switch(state.view) {
+    case 'dashboard': return renderDashboard();
+    case 'files':     return renderFiles();
+    case 'upload':    return renderUpload();
+    case 'jobs':      return renderJobs();
+    case 'licenses':  return renderLicenses();
+    case 'revenue':   return renderRevenue();
+    case 'print':     return renderPrint();
+    case 'video':     return renderVideoEditor();
+    case 'analytics': return renderAnalytics();
+    case 'delivery':  return renderDelivery();
+    default:          return renderDashboard();
+  }
+}
+
+window.setView = (v) => { state.view = v; state.error = null; render(); };
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const totalViews = state.files.reduce((s,f)=>s+(f.view_count||0),0);
+  const activeJobs = state.jobs.filter(j=>j.status==='queued'||j.status==='processing').length;
+  const revenue    = state.licenses.filter(l=>l.is_active).reduce((s,l)=>s+parseFloat(l.monthly_fee||0),0);
+
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Overview</div>
+      <div class="page-title">Dashboard</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px">
+      ${[
+        {label:'NIF Files',       value:state.files.length, color:'var(--accent2)', sub:'total'},
+        {label:'Active Jobs',     value:activeJobs,          color:'var(--amber)',   sub:'processing'},
+        {label:'Total Views',     value:fmt(totalViews),     color:'var(--green)',   sub:'all files'},
+        {label:'Monthly Revenue', value:`R ${revenue.toFixed(0)}`, color:'var(--gold)', sub:'active licenses'},
+      ].map(m=>`
+        <div class="card" style="padding:20px">
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">${m.label}</div>
+          <div style="font-size:30px;font-weight:800;color:${m.color};font-family:var(--mono);letter-spacing:-0.02em;margin-bottom:2px">${m.value}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em">${m.sub}</div>
+        </div>
+      `).join('')}
+    </div>
+    ${state.files.length === 0 && state.jobs.length === 0 ? `
+      <div class="empty-state" style="padding:80px 20px">
+        <div class="empty-icon">✦</div>
+        <div class="empty-title">No NIF files yet</div>
+        <div style="margin-bottom:20px">Upload your first capture to get started</div>
+        <button class="btn btn-primary" onclick="setView('upload')">Upload capture ↑</button>
+      </div>
+    ` : `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+            Recent Files
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setView('files')">All →</button>
+          </div>
+          ${state.files.length === 0
+            ? `<div class="card" style="padding:24px;text-align:center;color:var(--text3)">No files yet</div>`
+            : state.files.slice(0,5).map(f=>`
+              <div class="card" style="padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+                <span style="font-size:18px">${vIcon(f.vertical)}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.title||'Untitled'}</div>
+                  <div style="font-size:11px;color:var(--text2)">${fmtDate(f.created_at)} · ${fmtBytes(f.file_size)}</div>
+                </div>
+                <span class="badge" style="background:${vColor(f.vertical)}18;color:${vColor(f.vertical)};border:0.5px solid ${vColor(f.vertical)}33">${f.vertical}</span>
+              </div>
+            `).join('')
+          }
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+            Jobs
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setView('jobs')">All →</button>
+          </div>
+          ${state.jobs.length === 0
+            ? `<div class="card" style="padding:24px;text-align:center;color:var(--text3)">No jobs yet</div>`
+            : state.jobs.slice(0,5).map(j => renderJobCard(j)).join('')
+          }
+        </div>
+      </div>
+    `}
+  </div>`;
+}
+
+// ── Files ─────────────────────────────────────────────────────────────────────
+// ── AI copy generator — all verticals ────────────────────────────────────────
+// Called from every NIF file card. Shows vertical-specific fields.
+const AI_COPY_CONFIG = {
+  property: {
+    title:  '✍ AI Listing Description',
+    sub:    'Generates a professional estate agent listing from your property NIF',
+    fields: [
+      { id:'address',   label:'Address',          placeholder:'12 Oak Street, Sandton',    type:'text',   half:true },
+      { id:'price',     label:'Asking price (R)',  placeholder:'2500000',                   type:'number', half:true },
+      { id:'bedrooms',  label:'Bedrooms',          placeholder:'3',                         type:'number', half:true },
+      { id:'bathrooms', label:'Bathrooms',         placeholder:'2',                         type:'number', half:true },
+      { id:'extras',    label:'Key features',      placeholder:'Solar panels, double garage, pool', type:'text', half:false },
+    ],
+    btnLabel: 'Generate listing description →',
+    buildBody: () => ({
+      address:   document.getElementById('lc-address')?.value?.trim(),
+      price:     +document.getElementById('lc-price')?.value || undefined,
+      bedrooms:  +document.getElementById('lc-bedrooms')?.value || undefined,
+      bathrooms: +document.getElementById('lc-bathrooms')?.value || undefined,
+      extras:    (document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+  automotive: {
+    title:  '✍ Vehicle Description',
+    sub:    'Generates a professional vehicle listing or inspection report',
+    fields: [
+      { id:'make',     label:'Make',            placeholder:'Toyota',        type:'text',   half:true },
+      { id:'model',    label:'Model',           placeholder:'Fortuner',      type:'text',   half:true },
+      { id:'year',     label:'Year',            placeholder:'2022',          type:'number', half:true },
+      { id:'mileage',  label:'Mileage (km)',    placeholder:'45000',         type:'number', half:true },
+      { id:'price',    label:'Asking price (R)',placeholder:'750000',        type:'number', half:true },
+      { id:'condition',label:'Condition',       placeholder:'Excellent — one owner', type:'text', half:true },
+      { id:'extras',   label:'Features',        placeholder:'Sunroof, leather seats, towbar', type:'text', half:false },
+      { id:'damage',   label:'Known issues',    placeholder:'Small dent rear bumper', type:'text', half:false },
+    ],
+    btnLabel: 'Generate vehicle copy →',
+    buildBody: () => ({
+      make:      document.getElementById('lc-make')?.value?.trim(),
+      model:     document.getElementById('lc-model')?.value?.trim(),
+      year:      +document.getElementById('lc-year')?.value || undefined,
+      mileage:   +document.getElementById('lc-mileage')?.value || undefined,
+      price:     +document.getElementById('lc-price')?.value || undefined,
+      condition: document.getElementById('lc-condition')?.value?.trim(),
+      extras:    (document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      damage:    (document.getElementById('lc-damage')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+  fashion: {
+    title:  '✍ Product Description',
+    sub:    'Generates a professional fashion/product listing',
+    fields: [
+      { id:'brand',      label:'Brand',      placeholder:'e.g. Local Label',  type:'text',   half:true },
+      { id:'productName',label:'Product',    placeholder:'e.g. Linen Blazer', type:'text',   half:true },
+      { id:'material',   label:'Material',   placeholder:'100% linen',        type:'text',   half:true },
+      { id:'price',      label:'Price (R)',  placeholder:'1200',              type:'number', half:true },
+      { id:'extras',     label:'Features',   placeholder:'Unisex, relaxed fit, stone-washed', type:'text', half:false },
+    ],
+    btnLabel: 'Generate product copy →',
+    buildBody: () => ({
+      brand:       document.getElementById('lc-brand')?.value?.trim(),
+      productName: document.getElementById('lc-productName')?.value?.trim(),
+      material:    document.getElementById('lc-material')?.value?.trim(),
+      price:       +document.getElementById('lc-price')?.value || undefined,
+      extras:      (document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+  mining: {
+    title:  '✍ Site Report',
+    sub:    'Generates a professional mining site inspection summary',
+    fields: [
+      { id:'site',        label:'Site name',     placeholder:'Shaft 4B, Level 3',    type:'text',   half:true },
+      { id:'captureType', label:'Capture type',  placeholder:'Stope inspection',     type:'text',   half:true },
+      { id:'depth',       label:'Depth (m)',     placeholder:'450',                  type:'number', half:true },
+      { id:'area',        label:'Area (m²)',     placeholder:'320',                  type:'number', half:true },
+      { id:'hazards',     label:'Hazards',       placeholder:'Water ingress, loose hanging wall', type:'text', half:false },
+      { id:'findings',    label:'Key findings',  placeholder:'Ore grade 4.2g/t visible', type:'text', half:false },
+    ],
+    btnLabel: 'Generate site report →',
+    buildBody: () => ({
+      site:        document.getElementById('lc-site')?.value?.trim(),
+      captureType: document.getElementById('lc-captureType')?.value?.trim(),
+      depth:       +document.getElementById('lc-depth')?.value || undefined,
+      area:        +document.getElementById('lc-area')?.value || undefined,
+      hazards:     (document.getElementById('lc-hazards')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      findings:    (document.getElementById('lc-findings')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+  agriculture: {
+    title:  '✍ Field Report',
+    sub:    'Generates a professional agronomic field inspection report',
+    fields: [
+      { id:'crop',   label:'Crop',         placeholder:'Maize',             type:'text',   half:true },
+      { id:'area',   label:'Area (ha)',     placeholder:'12.5',              type:'number', half:true },
+      { id:'season', label:'Season',       placeholder:'Summer 2025/26',    type:'text',   half:true },
+      { id:'ndvi',   label:'Avg NDVI',     placeholder:'0.72',              type:'number', half:true },
+      { id:'issues', label:'Issues found', placeholder:'Aphid pressure in NE corner', type:'text', half:false },
+      { id:'extras', label:'Observations', placeholder:'Irrigation uniform, soil moisture adequate', type:'text', half:false },
+    ],
+    btnLabel: 'Generate field report →',
+    buildBody: () => ({
+      crop:         document.getElementById('lc-crop')?.value?.trim(),
+      area:         +document.getElementById('lc-area')?.value || undefined,
+      season:       document.getElementById('lc-season')?.value?.trim(),
+      ndvi:         +document.getElementById('lc-ndvi')?.value || undefined,
+      issues:       (document.getElementById('lc-issues')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      observations: (document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+  education: {
+    title:  '✍ Learning Content',
+    sub:    'Generates educational description and learning outcomes for this 3D object',
+    fields: [
+      { id:'subject', label:'Subject',     placeholder:'Biology — Cell Structure', type:'text', half:true },
+      { id:'level',   label:'Level',       placeholder:'Grade 10 / First year',    type:'text', half:true },
+      { id:'extras',  label:'Learning objectives', placeholder:'Identify organelles, explain mitosis', type:'text', half:false },
+      { id:'notes',   label:'Notes',       placeholder:'Part of Chapter 3 unit',   type:'text', half:false },
+    ],
+    btnLabel: 'Generate learning copy →',
+    buildBody: () => ({
+      subject:          document.getElementById('lc-subject')?.value?.trim(),
+      level:            document.getElementById('lc-level')?.value?.trim(),
+      learningObjectives:(document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      notes:            document.getElementById('lc-notes')?.value?.trim(),
+    }),
+  },
+  generic: {
+    title:  '✍ AI Description',
+    sub:    'Generates a professional description for this 4D capture',
+    fields: [
+      { id:'description', label:'What is this?', placeholder:'Describe the subject briefly', type:'text', half:false },
+      { id:'extras',      label:'Key features',  placeholder:'Notable features, use cases', type:'text', half:false },
+    ],
+    btnLabel: 'Generate description →',
+    buildBody: () => ({
+      description: document.getElementById('lc-description')?.value?.trim(),
+      extras:      (document.getElementById('lc-extras')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+    }),
+  },
+};
+
+// Keep old function name as alias for backward compat
+function openListingCopy(nifId) { openAICopy(nifId, 'property'); }
+
+function openAICopy(nifId, vertical) {
+  const cfg = AI_COPY_CONFIG[vertical] ?? AI_COPY_CONFIG.generic;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);
+    backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;
+  `;
+
+  const fieldsHTML = cfg.fields.map(f => `
+    <div style="${f.half ? 'grid-column:span 1' : 'grid-column:span 2'}">
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px;">${f.label}</label>
+      <input id="lc-${f.id}" type="${f.type}" placeholder="${f.placeholder}"
+        style="width:100%;background:var(--bg3);border:0.5px solid var(--border);
+          color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;"/>
+    </div>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:0.5px solid var(--border2);border-radius:16px;
+      width:100%;max-width:620px;max-height:90vh;overflow-y:auto;padding:28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:15px;font-weight:700">${cfg.title}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${cfg.sub}</div>
+        </div>
+        <button id="close-aicopy" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        ${fieldsHTML}
+      </div>
+      <button id="lc-generate" onclick="executeAICopy('${nifId}','${vertical}')"
+        style="width:100%;background:var(--accent);color:#fff;border:none;
+          border-radius:9px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;">
+        ${cfg.btnLabel}
+      </button>
+      <div id="lc-output" style="display:none;">
+        <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
+        <div id="lc-headline" style="font-size:16px;font-weight:700;margin-bottom:10px;color:var(--accent2)"></div>
+        <div id="lc-body" style="font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:14px;white-space:pre-wrap"></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Highlights</div>
+        <ul id="lc-highlights" style="list-style:none;display:flex;flex-direction:column;gap:5px;margin-bottom:16px"></ul>
+        <div id="lc-extra-label" style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;"></div>
+        <div id="lc-extra" style="font-size:12px;color:var(--text3);font-style:italic;margin-bottom:16px;line-height:1.6"></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">SEO description</div>
+        <div id="lc-seo" style="font-size:12px;color:var(--text3);font-style:italic;margin-bottom:16px;line-height:1.6"></div>
+        <button onclick="copyAICopy()"
+          style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text2);
+            border-radius:7px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">
+          Copy all text
+        </button>
+      </div>
+      <div id="lc-error" style="display:none;color:var(--red);font-size:12px;margin-top:8px;"></div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.getElementById('close-aicopy')?.addEventListener('click', () => document.body.removeChild(overlay));
+  overlay.addEventListener('click', e => { if (e.target === overlay) document.body.removeChild(overlay); });
+}
+
+async function executeAICopy(nifId, vertical) {
+  const cfg = AI_COPY_CONFIG[vertical] ?? AI_COPY_CONFIG.generic;
+  const btn = document.getElementById('lc-generate');
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+  document.getElementById('lc-error').style.display = 'none';
+
+  const body = cfg.buildBody();
+
+  try {
+    const res = await api(`/nif/${nifId}/ai-copy`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    document.getElementById('lc-output').style.display = 'block';
+    document.getElementById('lc-headline').textContent = res.headline ?? '';
+    document.getElementById('lc-body').textContent     = res.body ?? '';
+    document.getElementById('lc-seo').textContent      = res.seoDescription ?? '';
+
+    // Extra field — vertical-specific (conditionSummary, safetyFlags, fitNotes, etc.)
+    const extraKey  = Object.keys(res).find(k => !['headline','body','highlights','seoDescription','callToAction'].includes(k));
+    const extraEl   = document.getElementById('lc-extra');
+    const extraLabel= document.getElementById('lc-extra-label');
+    if (extraKey && res[extraKey] && extraEl && extraLabel) {
+      extraLabel.textContent = extraKey.replace(/([A-Z])/g,' $1').trim();
+      extraEl.textContent    = Array.isArray(res[extraKey]) ? res[extraKey].join(' · ') : res[extraKey];
+      extraLabel.style.display = 'block'; extraEl.style.display = 'block';
+    }
+
+    const ul = document.getElementById('lc-highlights');
+    ul.innerHTML = (res.highlights ?? []).map(h =>
+      `<li style="display:flex;align-items:flex-start;gap:7px;font-size:13px;color:var(--text2)">
+        <span style="color:var(--accent2);flex-shrink:0;">✓</span>${h}
+      </li>`
+    ).join('');
+
+    if (btn) btn.textContent = '✓ Generated';
+  } catch (e) {
+    document.getElementById('lc-error').style.display = 'block';
+    document.getElementById('lc-error').textContent = 'Failed: ' + e.message;
+    if (btn) { btn.textContent = cfg.btnLabel; btn.disabled = false; }
+  }
+}
+
+function copyAICopy() {
+  const headline = document.getElementById('lc-headline')?.textContent ?? '';
+  const body     = document.getElementById('lc-body')?.textContent ?? '';
+  const items    = [...document.querySelectorAll('#lc-highlights li')].map(li => '• ' + li.textContent.replace('✓','').trim()).join('\n');
+  const extra    = document.getElementById('lc-extra')?.textContent ?? '';
+  const seo      = document.getElementById('lc-seo')?.textContent ?? '';
+  const full     = [headline, '', body, '', items, extra ? '\n'+extra : '', '', 'SEO: '+seo].filter(Boolean).join('\n');
+  navigator.clipboard.writeText(full).then(() => {
+    const btn = document.querySelector('[onclick="copyAICopy()"]');
+    if (btn) { btn.textContent = '✓ Copied!'; setTimeout(()=>{ btn.textContent='Copy all text'; },2000); }
+  });
+}
+
+function renderFiles() {
+  return `<div class="page fade-up">
+    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div>
+        <div class="page-tag">Library</div>
+        <div class="page-title">NIF Files</div>
+      </div>
+      <button class="btn btn-ghost" onclick="loadAll().then(render)">↻ Refresh</button>
+    </div>
+    ${state.files.length === 0
+      ? `<div class="empty-state">
+          <div class="empty-icon">◉</div>
+          <div class="empty-title">No NIF files</div>
+          <div style="margin-bottom:20px">Your reconstructed NIF files appear here</div>
+          <button class="btn btn-primary" onclick="setView('upload')">Upload capture ↑</button>
+        </div>`
+      : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">
+          ${state.files.map(f => `
+            <div class="card hover" style="overflow:hidden">
+              <div style="height:160px;background:linear-gradient(135deg,${vColor(f.vertical)}18,var(--bg3));display:flex;align-items:center;justify-content:center;position:relative">
+                ${f.thumbnail_url ? `<img src="${f.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>` : `<span style="font-size:48px;opacity:0.25">${vIcon(f.vertical)}</span>`}
+                <span class="badge" style="position:absolute;top:10px;right:10px;background:${vColor(f.vertical)}22;color:${vColor(f.vertical)};border:0.5px solid ${vColor(f.vertical)}44">${vIcon(f.vertical)} ${f.vertical}</span>
+              </div>
+              <div style="padding:14px 16px">
+                <div style="font-size:14px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.title||'Untitled NIF'}</div>
+                <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${fmtDate(f.created_at)} · ${fmtBytes(f.file_size)}</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <a href="/view/${f.id}" style="font-size:11px;font-weight:600;color:var(--accent2);
+                    background:rgba(62,207,207,0.08);border:0.5px solid rgba(62,207,207,0.2);
+                    padding:5px 12px;border-radius:6px;text-decoration:none;transition:all .15s"
+                    onmouseenter="this.style.background='rgba(62,207,207,0.16)'"
+                    onmouseleave="this.style.background='rgba(62,207,207,0.08)'">
+                    View 4D →
+                  </a>
+                  <a href="/print?nif=${f.id}" style="font-size:11px;font-weight:600;color:var(--text2);
+                    background:var(--bg3);border:0.5px solid var(--border);
+                    padding:5px 12px;border-radius:6px;text-decoration:none;transition:all .15s"
+                    onmouseenter="this.style.background='var(--bg4)'"
+                    onmouseleave="this.style.background='var(--bg3)'">
+                    🖨 Print
+                  </a>
+                  <button onclick="openAICopy('${f.id}','${f.vertical||'generic'}')"
+                    style="font-size:11px;font-weight:600;
+                    color:${vColor(f.vertical)};
+                    background:${vColor(f.vertical)}14;
+                    border:0.5px solid ${vColor(f.vertical)}33;
+                    padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s"
+                    onmouseenter="this.style.opacity='0.8'"
+                    onmouseleave="this.style.opacity='1'">
+                    ✍ ${
+                      f.vertical==='property'   ? 'Listing copy' :
+                      f.vertical==='automotive' ? 'Vehicle copy' :
+                      f.vertical==='fashion'    ? 'Product copy' :
+                      f.vertical==='mining'     ? 'Site report' :
+                      f.vertical==='agriculture'? 'Field report' :
+                      f.vertical==='education'  ? 'Learning copy' :
+                                                  'AI copy'
+                    }
+                  </button>
+                  <button onclick="openShareCard('${f.id}')"
+                    style="font-size:11px;font-weight:600;color:var(--text3);
+                    background:var(--bg3);border:0.5px solid var(--border);
+                    padding:5px 10px;border-radius:6px;cursor:pointer;transition:all .15s"
+                    title="Generate share card for Instagram/WhatsApp"
+                    onmouseenter="this.style.background='var(--bg4)'"
+                    onmouseleave="this.style.background='var(--bg3)'">
+                    🖼
+                  </button>
+                  <a href="/compare?a=${f.id}"
+                    style="font-size:11px;font-weight:600;color:var(--text3);
+                    background:var(--bg3);border:0.5px solid var(--border);
+                    padding:5px 10px;border-radius:6px;text-decoration:none;transition:all .15s"
+                    title="Compare with another NIF"
+                    onmouseenter="this.style.background='var(--bg4)'"
+                    onmouseleave="this.style.background='var(--bg3)'">
+                    ⇔
+                  </a>
+                </div>
+                <div style="font-size:11px;color:var(--text3);display:flex;gap:12px;margin-top:8px">
+                  <span>👁 ${fmt(f.view_count||0)}</span>
+                  ${f.file_size ? `<span>✦ ${fmtBytes(f.file_size)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`
+    }
+  </div>`;
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+function renderUpload() {
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Create NIF</div>
+      <div class="page-title">Upload Capture</div>
+      <div class="page-sub">Video · Photo burst · LiDAR · 360° · Point cloud · NeRF</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+      <div>
+        <div id="dropzone" onclick="if(!window._hasFile)document.getElementById('file-input').click()" style="border:1.5px dashed var(--border2);border-radius:var(--r2);padding:56px 40px;text-align:center;cursor:pointer;background:var(--bg2);transition:all 0.2s;position:relative" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
+          <input type="file" id="file-input" style="display:none" accept=".mp4,.mov,.webm,.avi,.jpg,.jpeg,.png,.heic,.raw,.dng,.las,.laz,.pts,.xyz,.ply,.nif" onchange="handleFile(this.files[0])"/>
+          <div id="dz-content">
+            <div style="font-size:48px;margin-bottom:16px;opacity:0.3">↑</div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:8px">Drop capture here</div>
+            <div style="font-size:12px;color:var(--text2)">or click to browse · mp4 mov jpg png las ply .nif · up to 500MB</div>
+          </div>
+        </div>
+        <div id="preview-area" style="display:none;margin-top:12px;border-radius:var(--r2);overflow:hidden;border:0.5px solid var(--border);background:var(--bg2)">
+          <div id="preview-content"></div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:10px">
+            <span id="preview-icon">📄</span>
+            <div style="flex:1;min-width:0">
+              <div id="preview-name" style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+              <div id="preview-size" style="font-size:11px;color:var(--text2)"></div>
+            </div>
+            <button onclick="clearFile()" style="background:none;border:none;color:var(--text3);font-size:16px">✕</button>
+          </div>
+        </div>
+        <div id="progress-area" style="display:none;margin-top:12px;padding:18px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r2)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600" id="progress-label">Uploading…</span>
+            <span style="font-size:11px;font-family:var(--mono);color:var(--accent)" id="progress-pct">0%</span>
+          </div>
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+        </div>
+        <div id="success-area" style="display:none;margin-top:12px;padding:24px;background:rgba(61,220,151,0.05);border:0.5px solid rgba(61,220,151,0.2);border-radius:var(--r2);text-align:center">
+          <div style="font-size:32px;margin-bottom:10px">✦</div>
+          <div style="font-size:16px;font-weight:800;color:var(--green);margin-bottom:6px">Queued for reconstruction</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">The GPU worker will process your file. Track progress in Jobs.</div>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button class="btn btn-primary" onclick="setView('jobs')">View Jobs →</button>
+            <button class="btn btn-ghost" onclick="resetUpload()">Upload another</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="padding:18px">
+          <div class="label">Market Vertical</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="vertical-picker">
+            ${[
+              {id:'generic',icon:'✦',label:'Generic'},
+              {id:'automotive',icon:'🚗',label:'Auto'},
+              {id:'fashion',icon:'👗',label:'Fashion'},
+              {id:'property',icon:'🏠',label:'Property'},
+              {id:'mining',icon:'⛏️',label:'Mining'},
+              {id:'agriculture',icon:'🌾',label:'Agri'},
+            ].map(v=>`
+              <button onclick="selectVertical('${v.id}',this)" data-vertical="${v.id}" style="padding:9px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px${v.id==='generic'?';background:rgba(124,109,250,0.1);border-color:var(--accent);color:var(--accent2)':''}">
+                <span style="font-size:18px">${v.icon}</span>${v.label}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="card" style="padding:18px">
+          <div class="field" style="margin-bottom:12px">
+            <label class="label">Capture type</label>
+            <select class="select" id="capture-mode">
+              <option value="video">📹 Video</option>
+              <option value="burst">📷 Photo burst</option>
+              <option value="lidar">📡 LiDAR</option>
+              <option value="360">🌐 360°</option>
+              <option value="pointcloud">✦ Pre-processed point cloud (.ply)</option>
+              <option value="nerf">🧠 NeRF export</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">Title (optional)</label>
+            <input class="input" id="nif-title" placeholder="e.g. Toyota Hilux pre-rental"/>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="submit-btn" onclick="doUpload()" disabled style="width:100%;justify-content:center;padding:13px;font-size:14px">
+          Convert to NIF ✦
+        </button>
+        <div style="font-size:11px;color:var(--text3);background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;line-height:1.8">
+          <div style="font-weight:600;color:var(--text2);margin-bottom:4px">AI Pipeline</div>
+          Neural deblurring → Camera poses → 4D depth reconstruction → Mesh extraction → Materials → .nif assembly
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+let selectedVertical = 'generic';
+let selectedFile     = null;
+
+window.selectVertical = (id, btn) => {
+  selectedVertical = id;
+  document.querySelectorAll('[data-vertical]').forEach(b => {
+    const active = b.dataset.vertical === id;
+    b.style.background   = active ? 'rgba(124,109,250,0.1)' : 'transparent';
+    b.style.borderColor  = active ? 'var(--accent)'         : 'var(--border)';
+    b.style.color        = active ? 'var(--accent2)'        : 'var(--text2)';
+  });
+};
+
+window.handleDrop = (e) => {
+  e.preventDefault();
+  document.getElementById('dropzone').style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer?.files?.[0];
+  if (file) handleFile(file);
+};
+
+window.handleFile = (file) => {
+  if (!file) return;
+  selectedFile = file;
+  window._hasFile = true;
+
+  const dz = document.getElementById('dropzone');
+  dz.style.borderColor = 'var(--green)';
+  dz.style.cursor      = 'default';
+  document.getElementById('dz-content').innerHTML = `
+    <div style="font-size:40px;margin-bottom:12px;color:var(--green)">✓</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">${file.name}</div>
+    <div style="font-size:12px;color:var(--text2)">${fmtBytes(file.size)}</div>
+  `;
+
+  // Show preview
+  const pa = document.getElementById('preview-area');
+  const pc = document.getElementById('preview-content');
+  pa.style.display = 'block';
+  document.getElementById('preview-name').textContent = file.name;
+  document.getElementById('preview-size').textContent = fmtBytes(file.size);
+
+  if (file.type.startsWith('video/')) {
+    pc.innerHTML = `<video src="${URL.createObjectURL(file)}" controls muted playsinline style="width:100%;max-height:300px;display:block;object-fit:cover"></video>`;
+    document.getElementById('preview-icon').textContent = '📹';
+  } else if (file.type.startsWith('image/')) {
+    pc.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width:100%;max-height:300px;object-fit:contain;display:block"/>`;
+    document.getElementById('preview-icon').textContent = '📷';
+  } else {
+    pc.innerHTML = `<div style="padding:32px;text-align:center;font-size:40px;color:var(--text3)">📦</div>`;
+    document.getElementById('preview-icon').textContent = '📦';
+  }
+
+  document.getElementById('submit-btn').disabled = false;
+};
+
+window.clearFile = () => {
+  selectedFile = null;
+  window._hasFile = false;
+  document.getElementById('dz-content').innerHTML = `
+    <div style="font-size:48px;margin-bottom:16px;opacity:0.3">↑</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px">Drop capture here</div>
+    <div style="font-size:12px;color:var(--text2)">or click to browse</div>
+  `;
+  document.getElementById('dropzone').style.borderColor = 'var(--border2)';
+  document.getElementById('dropzone').style.cursor      = 'pointer';
+  document.getElementById('preview-area').style.display = 'none';
+  document.getElementById('submit-btn').disabled = true;
+};
+
+window.resetUpload = () => {
+  clearFile();
+  document.getElementById('success-area').style.display  = 'none';
+  document.getElementById('dropzone').style.display      = 'block';
+  document.getElementById('submit-btn').style.display    = 'flex';
+};
+
+window.doUpload = async () => {
+  if (!selectedFile) return;
+  const btn = document.getElementById('submit-btn');
+  const progressArea  = document.getElementById('progress-area');
+  const successArea   = document.getElementById('success-area');
+
+  btn.disabled = true;
+  progressArea.style.display = 'block';
+  document.getElementById('dropzone').style.display = 'none';
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-bar').style.width  = pct+'%';
+    document.getElementById('progress-pct').textContent  = pct+'%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
+  try {
+    setProgress(10, 'Preparing upload…');
+    const form = new FormData();
+    form.append('capture',     selectedFile);
+    form.append('vertical',    selectedVertical);
+    form.append('captureMode', document.getElementById('capture-mode').value);
+    form.append('title',       document.getElementById('nif-title').value.trim());
+
+    setProgress(30, 'Uploading to secure storage…');
+    const res = await fetch(`${API}/capture/upload`, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${state.token}` },
+      body:    form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    setProgress(100, 'Queued for reconstruction');
+    setTimeout(() => {
+      progressArea.style.display = 'none';
+      successArea.style.display  = 'block';
+      btn.style.display = 'none';
+      loadAll().then(() => {});
+    }, 500);
+  } catch(e) {
+    setProgress(0, 'Error: ' + e.message);
+    document.getElementById('progress-label').style.color = 'var(--red)';
+    btn.disabled = false;
+  }
+};
+
+// ── Jobs ──────────────────────────────────────────────────────────────────────
+function renderJobCard(j) {
+  const LABELS = { queued:'Queued', processing:'Processing', complete:'Complete', failed:'Failed' };
+  const COLORS = { queued:'var(--text3)', processing:'var(--amber)', complete:'var(--green)', failed:'var(--red)' };
+  const c = COLORS[j.status] ?? 'var(--text3)';
+  return `<div class="card" style="padding:14px 16px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:12px;${j.status==='processing'?'margin-bottom:8px':''}">
+      <span style="font-size:16px">${vIcon(j.vertical)}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.id}</div>
+        <div style="font-size:10px;color:var(--text3)">${fmtDate(j.created_at)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:${c}">
+        ${j.status==='processing'?`<div class="spinner" style="width:10px;height:10px"></div>`:
+          `<div style="width:6px;height:6px;border-radius:50%;background:${c}"></div>`}
+        ${LABELS[j.status]??j.status}${j.status==='processing'?` ${j.progress||0}%`:''}
+      </div>
+    </div>
+    ${j.status==='processing'?`<div class="progress-bar-track"><div class="progress-bar-fill" style="width:${j.progress||0}%"></div></div>`:''}
+    ${j.error_message?`<div style="font-size:11px;color:var(--red);margin-top:6px;padding:5px 8px;background:rgba(255,85,102,0.08);border-radius:4px">${j.error_message}</div>`:''}
+  </div>`;
+}
+
+function renderJobs() {
+  return `<div class="page fade-up">
+    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div>
+        <div class="page-tag">GPU Pipeline</div>
+        <div class="page-title">Reconstruction Jobs</div>
+      </div>
+      <button class="btn btn-ghost" onclick="loadAll().then(render)">↻ Refresh</button>
+    </div>
+    ${state.jobs.length === 0
+      ? `<div class="empty-state"><div class="empty-icon">⊡</div><div class="empty-title">No jobs yet</div><div>Upload a capture to start reconstruction</div></div>`
+      : `<div style="display:flex;flex-direction:column;gap:10px">${state.jobs.map(j => renderJobCard(j)).join('')}</div>`
+    }
+  </div>`;
+}
+
+// ── Licenses ──────────────────────────────────────────────────────────────────
+function renderLicenses() {
+  return `<div class="page fade-up">
+    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div>
+        <div class="page-tag">Revenue</div>
+        <div class="page-title">Client Licenses</div>
+        <div class="page-sub">Issue licenses to clients. Every embed generates trackable revenue.</div>
+      </div>
+      <button class="btn btn-gold" onclick="toggleIssueForm()">+ Issue License</button>
+    </div>
+    <div id="issue-form" style="display:none;margin-bottom:20px">
+      <div class="card" style="padding:20px;border-color:var(--border2)">
+        <div style="font-size:14px;font-weight:700;margin-bottom:16px">Issue New License</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div class="field"><label class="label">Client name *</label><input class="input" id="lic-name" placeholder="Acme Car Rentals"/></div>
+          <div class="field"><label class="label">Client email</label><input class="input" id="lic-email" type="email" placeholder="tech@acme.co.za"/></div>
+          <div class="field"><label class="label">Domain</label><input class="input" id="lic-domain" placeholder="acme.co.za"/></div>
+          <div class="field"><label class="label">Plan *</label>
+            <select class="select" id="lic-plan">
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div class="field"><label class="label">Monthly fee</label><input class="input" id="lic-fee" type="number" placeholder="2500"/></div>
+          <div class="field"><label class="label">Currency</label>
+            <select class="select" id="lic-currency">
+              <option value="ZAR">ZAR</option><option value="USD">USD</option><option value="EUR">EUR</option>
+            </select>
+          </div>
+        </div>
+        <div id="lic-error" style="display:none" class="error-msg" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-gold" id="lic-submit" onclick="doIssueLicense()">Issue License ✦</button>
+          <button class="btn btn-ghost" onclick="toggleIssueForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    ${state.licenses.length === 0
+      ? `<div class="empty-state">
+          <div class="empty-icon">◎</div>
+          <div class="empty-title">No licenses</div>
+          <div style="margin-bottom:20px">Issue a license to a client and start generating recurring revenue</div>
+          <button class="btn btn-gold" onclick="toggleIssueForm()">+ Issue first license</button>
+        </div>`
+      : `<div style="display:flex;flex-direction:column;gap:10px">
+          ${state.licenses.map(l=>`
+            <div class="card" style="padding:16px 20px;display:flex;align-items:center;gap:16px">
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                  <span style="font-size:14px;font-weight:700">${l.client_name}</span>
+                  <span class="badge" style="background:${l.plan==='enterprise'?'rgba(240,192,96,0.15)':l.plan==='pro'?'rgba(124,109,250,0.15)':'rgba(61,220,151,0.15)'};color:${l.plan==='enterprise'?'var(--gold)':l.plan==='pro'?'var(--accent2)':'var(--green)'};border:none">${l.plan}</span>
+                  ${!l.is_active?`<span class="badge" style="background:rgba(255,85,102,0.12);color:var(--red);border:none">Inactive</span>`:''}
+                </div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:2px">${l.license_key}</div>
+                ${l.domain?`<div style="font-size:11px;color:var(--text2)">🌐 ${l.domain}</div>`:''}
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:22px;font-weight:800;color:var(--gold);font-family:var(--mono)">R ${parseFloat(l.monthly_fee||0).toFixed(0)}</div>
+                <div style="font-size:10px;color:var(--text3)">/month · ${l.currency}</div>
+              </div>
+              ${l.is_active?`<button class="btn btn-ghost" style="padding:5px 10px;font-size:10px;flex-shrink:0" onclick="deactivateLicense('${l.id}')">Deactivate</button>`:''}
+            </div>
+          `).join('')}
+        </div>`
+    }
+  </div>`;
+}
+
+let issueFormOpen = false;
+window.toggleIssueForm = () => {
+  issueFormOpen = !issueFormOpen;
+  const f = document.getElementById('issue-form');
+  if (f) f.style.display = issueFormOpen ? 'block' : 'none';
+};
+
+window.doIssueLicense = async () => {
+  const name     = document.getElementById('lic-name')?.value.trim();
+  const email    = document.getElementById('lic-email')?.value.trim();
+  const domain   = document.getElementById('lic-domain')?.value.trim();
+  const plan     = document.getElementById('lic-plan')?.value;
+  const fee      = document.getElementById('lic-fee')?.value;
+  const currency = document.getElementById('lic-currency')?.value;
+  const errEl    = document.getElementById('lic-error');
+  const btn      = document.getElementById('lic-submit');
+
+  if (!name || !plan) { errEl.textContent='Client name and plan required'; errEl.style.display='block'; return; }
+  btn.disabled=true;
+  errEl.style.display='none';
+
+  try {
+    await api('/licenses', {
+      method: 'POST',
+      body:   JSON.stringify({ clientName:name, clientEmail:email, domain, plan, monthlyFee:parseFloat(fee)||0, currency }),
+    });
+    await loadAll();
+    issueFormOpen = false;
+    render();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+  }
+};
+
+window.deactivateLicense = async (id) => {
+  if (!confirm('Deactivate this license?')) return;
+  await api(`/licenses/${id}/deactivate`, { method:'PATCH' });
+  await loadAll(); render();
+};
+
+// ── Revenue ───────────────────────────────────────────────────────────────────
+function renderRevenue() {
+  const active  = state.licenses.filter(l => l.is_active);
+  const monthly = active.reduce((s,l) => s+parseFloat(l.monthly_fee||0), 0);
+  const annual  = monthly * 12;
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Financials</div>
+      <div class="page-title">Revenue</div>
+    </div>
+    ${active.length === 0
+      ? `<div class="empty-state">
+          <div class="empty-icon">◎</div>
+          <div class="empty-title">No revenue yet</div>
+          <div style="margin-bottom:20px">Issue licenses to clients to start generating monthly recurring revenue</div>
+          <button class="btn btn-gold" onclick="setView('licenses')">Issue a license →</button>
+        </div>`
+      : `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+          ${[
+            {label:'Monthly Recurring',  value:`R ${monthly.toFixed(2)}`, color:'var(--gold)'},
+            {label:'Annual Projection',  value:`R ${annual.toFixed(2)}`,  color:'var(--green)'},
+            {label:'Active Licenses',    value:active.length,              color:'var(--accent2)'},
+          ].map(m=>`
+            <div class="card" style="padding:24px">
+              <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">${m.label}</div>
+              <div style="font-size:28px;font-weight:800;color:${m.color};font-family:var(--mono)">${m.value}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="card" style="padding:20px">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:16px">Active Licenses</div>
+          ${active.map(l=>`
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
+              <span style="font-size:13px;flex:1">${l.client_name}</span>
+              <span style="font-size:10px;color:var(--text3)">${l.plan}</span>
+              <span style="font-family:var(--mono);font-size:13px;color:var(--gold)">R ${parseFloat(l.monthly_fee||0).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>`
+    }
+  </div>`;
+}
+
+// ── Video Editor ─────────────────────────────────────────────────────────────
+function renderVideoEditor() {
+  const completedFiles = state.files.filter(f => f.r2_key);
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Video Presentation Editor</div>
+      <div class="page-title">Turn your NIF into a shareable video</div>
+      <div class="page-sub">Add text, links, logos and camera moves. Export as mp4 for YouTube, Instagram, TikTok or any platform — with a link so viewers can open the interactive version.</div>
+    </div>
+    ${!completedFiles.length ? `
+      <div class="empty-state">
+        <div class="empty-icon">▶</div>
+        <div class="empty-title">No NIF files ready</div>
+        <div style="margin-bottom:16px">Upload and reconstruct a NIF first.</div>
+        <button class="btn btn-primary" onclick="setView('upload')">Upload capture ↑</button>
+      </div>
+    ` : `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        ${completedFiles.map(f => `
+          <div class="card hover" style="padding:0;overflow:hidden">
+            <div style="height:140px;background:linear-gradient(135deg,${vColor(f.vertical)}18,var(--bg3));display:flex;align-items:center;justify-content:center;font-size:52px;opacity:0.5">${vIcon(f.vertical)}</div>
+            <div style="padding:14px 16px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.title||'Untitled NIF'}</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:12px">${f.vertical||'NIF scene'} · ${fmtBytes(f.file_size)}</div>
+              <a href="/dashboard/video-editor.html?nif=${f.id}" class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;padding:8px;display:flex;align-items:center;gap:6px">▶ Open in Video Editor</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  </div>`;
+}
+
+// ── 3D Print ──────────────────────────────────────────────────────────────────
+function renderPrint() {
+  const printableFiles = state.files.filter(f => f.gaussian_count > 0 && f.r2_key);
+  const filesWithPrints= state.files.filter(f => Object.keys(f.print_r2_keys ?? {}).length > 0);
+
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">3D Print Export</div>
+      <div class="page-title">Print physical objects from your NIFs</div>
+      <div class="page-sub">Figurines · Bobbleheads · Keychains · Busts · Miniatures · Portrait Coins</div>
+    </div>
+
+    ${!printableFiles.length ? `
+      <div class="empty-state">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-title">No NIF files ready for printing</div>
+        <div style="margin-bottom:16px">Upload and reconstruct a NIF first. Once the GPU pipeline completes, you can export it as a 3D-printable mesh.</div>
+        <button class="btn btn-primary" onclick="setView('upload')">Upload capture ↑</button>
+      </div>
+    ` : `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px">
+        ${[
+          {label:'Printable NIFs',  value:printableFiles.length, color:'var(--gold)'},
+          {label:'STLs Generated',  value:filesWithPrints.reduce((s,f)=>s+Object.keys(f.print_r2_keys??{}).length,0), color:'var(--green)'},
+        ].map(m=>`
+          <div class="card" style="padding:20px">
+            <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">${m.label}</div>
+            <div style="font-size:28px;font-weight:800;color:${m.color};font-family:var(--mono)">${m.value}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        ${printableFiles.map(f => {
+          const keys = f.print_r2_keys ?? {};
+          const n    = Object.keys(keys).length;
+          return `
+          <div class="card hover" style="padding:0;overflow:hidden;cursor:pointer" onclick="window.location.href='/dashboard/print.html?nif=${f.id}'">
+            <div style="height:120px;background:linear-gradient(135deg,${vColor(f.vertical)}18,var(--bg3));display:flex;align-items:center;justify-content:center;font-size:44px;opacity:0.6">${vIcon(f.vertical)}</div>
+            <div style="padding:14px 16px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.title||'Untitled NIF'}</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${fmt(f.gaussian_count)} depth points · ${fmtBytes(f.file_size)}</div>
+              ${n > 0
+                ? `<div style="font-size:11px;color:var(--green);margin-bottom:10px">✓ ${n} STL${n>1?'s':''} ready</div>`
+                : `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">No STLs yet</div>`
+              }
+              <a href="/dashboard/print.html?nif=${f.id}" class="btn btn-gold" style="width:100%;justify-content:center;font-size:12px;padding:8px">
+                ${n > 0 ? '↓ Download STL' : '⬡ Generate STL'}
+              </a>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `}
+  </div>`;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+const VERTICALS = {
+  automotive:{color:'#ffaa44',icon:'🚗'}, fashion:{color:'#f06aff',icon:'👗'},
+  property:{color:'#3ddc97',icon:'🏠'},   mining:{color:'#ffcc44',icon:'⛏️'},
+  agriculture:{color:'#6ddc7c',icon:'🌾'},education:{color:'#44aaff',icon:'📚'},
+  generic:{color:'#a594ff',icon:'✦'},
+};
+const vColor = id => VERTICALS[id]?.color ?? '#a594ff';
+const vIcon  = id => VERTICALS[id]?.icon  ?? '✦';
+const fmt    = n  => Number(n||0).toLocaleString();
+const fmtDate= d  => new Date(d).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+const fmtBytes=b  => !b?'—':b>1e9?(b/1e9).toFixed(1)+'GB':b>1e6?(b/1e6).toFixed(1)+'MB':(b/1e3).toFixed(0)+'KB';
+
+window.doSignOut = async () => { await sb.auth.signOut(); state.view='dashboard'; };
+
+function render() {
+  if (!state.user) {
+    renderAuth();
+    return;
+  }
+
+  renderApp();
+
+  if (!realtimeSubscribed) {
+  subscribeRealtime();
+  realtimeSubscribed = true;
+  }
+}
+
+// Start
+init();
+
+// ── Analytics page ────────────────────────────────────────────────────────────
+function renderAnalytics() {
+  const overview = state.analyticsOverview ??
+{
+  totalViews:0,
+  embedViews:0,
+  printJobs:0,
+  topNifs:[]
+};
+  const o = overview ?? { totalViews:0, embedViews:0, printJobs:0, topNifs:[], period:'30d' };
+
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Insights</div>
+      <div class="page-title">Analytics</div>
+      <div class="page-sub">Last 30 days across all your NIF files</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+      ${[
+        ['Total views', o.totalViews, '👁'],
+        ['Embed views', o.embedViews, '〈〉'],
+        ['Print jobs',  o.printJobs,  '🖨'],
+      ].map(([label,val,icon]) => `
+        <div class="card" style="padding:20px;text-align:center">
+          <div style="font-size:28px;margin-bottom:4px">${icon}</div>
+          <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:var(--accent2)">${val.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card" style="padding:20px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px">Top performing NIFs</div>
+        ${o.topNifs.length ? o.topNifs.map(n => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+            <span style="font-size:16px">${{property:'🏠',automotive:'🚗',fashion:'👗',mining:'⛏️',agriculture:'🌾',education:'📚'}[n.vertical]||'✦'}</span>
+            <div style="flex:1;overflow:hidden">
+              <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.title||'Untitled'}</div>
+              <div style="font-size:10px;color:var(--text3)">${n.vertical}</div>
+            </div>
+            <div style="font-size:14px;font-weight:700;color:var(--accent2);font-family:var(--mono)">${n.views}</div>
+          </div>
+        `).join('') : `<div style="font-size:13px;color:var(--text3);text-align:center;padding:20px">No views yet this period</div>`}
+      </div>
+
+      <div class="card" style="padding:20px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px">Per-NIF analytics</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Select a NIF to see detailed view breakdown, embed domains, and geographic data.</div>
+        <div id="anl-nif-select"></div>
+        <div id="anl-nif-detail"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Delivery management page ──────────────────────────────────────────────────
+function renderDelivery() {
+  const deliveries = [];
+
+  return `<div class="page fade-up">
+    <div class="page-header">
+      <div class="page-tag">Share</div>
+      <div class="page-title">Client Deliveries</div>
+      <div class="page-sub">Send a branded delivery link — clients see your NIFs without the fumoca dashboard</div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <button class="btn btn-primary" onclick="openNewDelivery()">+ New delivery link</button>
+    </div>
+
+    ${!deliveries.length ? `
+      <div class="card" style="padding:40px;text-align:center">
+        <div style="font-size:40px;opacity:.3;margin-bottom:12px">📦</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">No deliveries yet</div>
+        <div style="font-size:13px;color:var(--text3);max-width:360px;margin:0 auto">
+          Create a delivery link to share branded NIF experiences with clients — no account needed on their side.
+        </div>
+      </div>
+    ` : `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${deliveries.map(d => {
+          const daysLeft = Math.max(0, Math.ceil((new Date(d.expires_at) - Date.now()) / 86400000));
+          const expired  = daysLeft === 0;
+          return `
+            <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.title||'Untitled delivery'}</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">${d.nif_ids?.length||0} NIF${d.nif_ids?.length!==1?'s':''} · ${expired?'<span style="color:var(--red)">Expired</span>':'Expires in '+daysLeft+' day'+(daysLeft!==1?'s':'')}</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onclick="copyDeliveryLink('${d.token}')"
+                  style="font-size:11px;font-weight:600;background:rgba(62,207,207,0.08);color:var(--accent2);
+                  border:0.5px solid rgba(62,207,207,0.2);padding:6px 12px;border-radius:6px;cursor:pointer">
+                  Copy link
+                </button>
+                <button onclick="deleteDelivery('${d.token}')"
+                  style="font-size:11px;font-weight:600;background:rgba(240,54,74,0.08);color:var(--red);
+                  border:0.5px solid rgba(240,54,74,0.2);padding:6px 12px;border-radius:6px;cursor:pointer">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `}
+  </div>`;
+}
+
+function copyDeliveryLink(token) {
+  navigator.clipboard.writeText(`https://fumoca.co.za/delivery?t=${token}`).then(() => {
+    showToast('Delivery link copied!');
+  });
+}
+
+async function deleteDelivery(token) {
+  if (!confirm('Delete this delivery link? Clients with the link will no longer be able to access it.')) return;
+  await api(`/delivery/${token}`, { method:'DELETE' });
+  setView('delivery');
+}
+
+async function openNewDelivery() {
+  // Quick modal to create delivery
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const nifOptions = state.files.map(f =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:8px;cursor:pointer;border-radius:7px;transition:background .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='transparent'">
+      <input type="checkbox" value="${f.id}" style="accent-color:var(--accent);width:14px;height:14px;">
+      <span style="font-size:13px">${f.title||'Untitled'}</span>
+    </label>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:0.5px solid var(--border2);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700">📦 New Delivery Link</div>
+        <button onclick="this.closest('[style*=\"position:fixed\"]').remove()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Title</label>
+      <input id="dl-title" class="input" placeholder="e.g. 12 Oak Street — your property NIF" style="margin-bottom:12px"/>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Message to client</label>
+      <input id="dl-msg" class="input" placeholder="Your 4D captures are ready to explore" style="margin-bottom:12px"/>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Your name / business</label>
+      <input id="dl-brand" class="input" placeholder="e.g. Jane Bloggs Properties" style="margin-bottom:12px"/>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Expires after</label>
+      <select id="dl-expiry" style="width:100%;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;margin-bottom:16px">
+        <option value="7">7 days</option>
+        <option value="30" selected>30 days</option>
+        <option value="90">90 days</option>
+        <option value="365">1 year</option>
+      </select>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:8px">Select NIFs to include</label>
+      <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px;max-height:200px;overflow-y:auto;margin-bottom:16px">
+        ${nifOptions || '<div style="font-size:13px;color:var(--text3);padding:8px">No NIF files yet</div>'}
+      </div>
+      <button onclick="createDelivery(this)" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:12px;font-size:13px;font-weight:600;cursor:pointer">
+        Create delivery link →
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function createDelivery(btn) {
+  const overlay = btn.closest('[style*="position:fixed"]');
+  const nifIds  = [...overlay.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
+  if (!nifIds.length) { alert('Select at least one NIF'); return; }
+
+  btn.textContent = 'Creating…'; btn.disabled = true;
+  try {
+    const result = await api('/delivery', {
+      method: 'POST',
+      body: JSON.stringify({
+        nifIds,
+        title:       overlay.querySelector('#dl-title').value.trim(),
+        message:     overlay.querySelector('#dl-msg').value.trim(),
+        brandName:   overlay.querySelector('#dl-brand').value.trim(),
+        expiryDays:  +overlay.querySelector('#dl-expiry').value,
+      }),
+    });
+    overlay.remove();
+    await navigator.clipboard.writeText(result.url);
+    showToast('Delivery link copied to clipboard!');
+    setView('delivery');
+  } catch(e) {
+    btn.textContent = 'Create delivery link →'; btn.disabled = false;
+    alert(e.message);
+  }
+}
+
+// ── Share card + QR code generator ───────────────────────────────────────────
+async function openShareCard(nifId) {
+  const data = await api(`/nif/${nifId}/share-card`).catch(()=>null);
+  if (!data) return;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;flex-direction:column;gap:16px';
+
+  overlay.innerHTML = `
+    <div style="font-size:14px;font-weight:600;color:var(--text2)">Share card preview</div>
+    <canvas id="share-canvas" style="border-radius:12px;max-width:100%;max-height:60vh;"></canvas>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button onclick="downloadShareCard('story')" class="btn btn-primary">↓ Story (9:16)</button>
+      <button onclick="downloadShareCard('post')"  class="btn btn-primary">↓ Post (1:1)</button>
+      <button onclick="downloadShareCard('banner')"class="btn btn-primary">↓ Banner (16:9)</button>
+      <button onclick="this.closest('[style*=\"position:fixed\"]').remove()" class="btn btn-ghost">Close</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Render share card on canvas
+  requestAnimationFrame(() => renderShareCard(data, 'story'));
+}
+
+function renderShareCard(data, format) {
+  const cv  = document.getElementById('share-canvas');
+  if (!cv) return;
+  const formats = { story:[1080,1920], post:[1080,1080], banner:[1920,1080] };
+  const [W,H] = formats[format] || formats.story;
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0, '#0c0c16');
+  grad.addColorStop(1, '#060608');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  // Violet glow
+  const glow = ctx.createRadialGradient(W/2,H*.35,0,W/2,H*.35,W*.6);
+  glow.addColorStop(0,'rgba(123,94,248,0.15)');
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0,0,W,H);
+
+  // Thumbnail
+  if (data.thumbnailUrl) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const iH = Math.round(H * .5);
+      ctx.save();
+      ctx.beginPath();
+      const r = 40;
+      const ix = W*.1, iy = H*.12, iw = W*.8;
+      ctx.moveTo(ix+r,iy); ctx.lineTo(ix+iw-r,iy);
+      ctx.quadraticCurveTo(ix+iw,iy,ix+iw,iy+r);
+      ctx.lineTo(ix+iw,iy+iH-r); ctx.quadraticCurveTo(ix+iw,iy+iH,ix+iw-r,iy+iH);
+      ctx.lineTo(ix+r,iy+iH); ctx.quadraticCurveTo(ix,iy+iH,ix,iy+iH-r);
+      ctx.lineTo(ix,iy+r); ctx.quadraticCurveTo(ix,iy,ix+r,iy);
+      ctx.closePath(); ctx.clip();
+      ctx.drawImage(img, ix, iy, iw, iH);
+      ctx.restore();
+      drawShareCardText(ctx, data, W, H, iH);
+    };
+    img.src = data.thumbnailUrl;
+  } else {
+    drawShareCardText(ctx, data, W, H, 0);
+  }
+
+  window._shareCardData = data;
+  window._shareCardFormat = format;
+}
+
+function drawShareCardText(ctx, data, W, H, imgH) {
+  const yBase = H * .12 + imgH + H * .04;
+
+  // ✦ NIF badge
+  ctx.fillStyle = 'rgba(123,94,248,0.2)';
+  ctx.beginPath();
+  const bw=200, bh=44, bx=W/2-bw/2, by=yBase;
+  ctx.roundRect(bx,by,bw,bh,22);
+  ctx.fill();
+  ctx.fillStyle = '#7b5ef8';
+  ctx.font = `bold ${Math.round(W*.028)}px 'Instrument Sans',sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('✦  NIF · fumoca.co.za', W/2, by+bh*.66);
+
+  // Title
+  ctx.fillStyle = '#f0eff0';
+  ctx.font = `bold ${Math.round(W*.06)}px 'Instrument Sans',sans-serif`;
+  ctx.textAlign = 'center';
+  const title = data.title || 'Explore in 4D';
+  ctx.fillText(title.length>24 ? title.slice(0,24)+'…' : title, W/2, yBase+bh+H*.08);
+
+  // CTA
+  ctx.fillStyle = 'rgba(46,220,220,0.85)';
+  ctx.font = `600 ${Math.round(W*.035)}px 'Instrument Sans',sans-serif`;
+  ctx.fillText('Tap to explore in 4D →', W/2, yBase+bh+H*.14);
+
+  // QR code area
+  const qrY = yBase+bh+H*.2;
+  const qrSize = Math.round(W*.22);
+  generateQROnCanvas(ctx, data.viewUrl, W/2-qrSize/2, qrY, qrSize);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = `${Math.round(W*.022)}px 'Instrument Sans',sans-serif`;
+  ctx.fillText('Scan QR or visit fumoca.co.za', W/2, qrY+qrSize+H*.025);
+}
+
+function generateQROnCanvas(ctx, url, x, y, size) {
+  // Minimal QR placeholder — draws a visible box with the URL domain
+  // In production replace with qrcode.js or similar library
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x, y, size, size);
+  ctx.fillStyle = '#060608';
+  ctx.fillRect(x+size*.08, y+size*.08, size*.84, size*.84);
+  ctx.fillStyle = '#7b5ef8';
+  ctx.font = `bold ${Math.round(size*.12)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('QR', x+size/2, y+size*.55);
+  ctx.font = `${Math.round(size*.09)}px monospace`;
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.fillText('fumoca.co.za', x+size/2, y+size*.72);
+}
+
+function downloadShareCard(format) {
+  const cv = document.getElementById('share-canvas');
+  if (!cv || !window._shareCardData) return;
+  renderShareCard(window._shareCardData, format);
+  setTimeout(() => {
+    const a  = document.createElement('a');
+    a.href   = cv.toDataURL('image/jpeg', 0.92);
+    a.download = `nif-share-${format}-${Date.now()}.jpg`;
+    a.click();
+  }, 200);
+}
+
+// ── Toast helper ──────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2000;
+    background:var(--bg2);border:0.5px solid var(--border2);color:var(--text);
+    font-size:13px;font-weight:600;padding:10px 20px;border-radius:100px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);pointer-events:none;
+    animation:fadeUp .3s ease;`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// Add share card button to file cards — inject after renderFiles is called
+const _origRenderFiles = renderFiles;
+renderFiles = function() {
+  const html = _origRenderFiles();
+  // Share card and QR button is already rendered inline in the card actions via openAICopy
+  return html;
+};
+</script>
+</body>
+</html>

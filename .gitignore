@@ -1,0 +1,15 @@
+.env
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+dist/
+*.log
+tmp/
+nif_*/
+*.mp4
+*.mov
+*.las
+*.laz
+*.splat
+.DS_Store

@@ -1,0 +1,21 @@
+# NIF Platform — Cloudflare Pages URL routing
+# fumoca.co.za · © Fumoca Technologies
+
+/                   /index.html                     200
+/dashboard          /dashboard/index.html           200
+/dashboard/*        /dashboard/index.html           200
+/view/:id           /viewer/public/view.html        200
+/feed               /viewer/public/feed.html        200
+/editor             /editor/index.html              200
+/editor/*           /editor/index.html              200
+/print              /dashboard/print.html           200
+/video-editor       /dashboard/video-editor.html    200
+/developers         /developers/index.html          200
+/developers/*       /developers/index.html          200
+/capture            /capture/index.html             200
+/capture/*          /capture/index.html             200
+/delivery           /delivery/index.html            200
+/delivery/:token    /delivery/index.html            200
+/compare            /compare/index.html             200
+/sw.js              /sw.js                          200
+/*                  /index.html                     200

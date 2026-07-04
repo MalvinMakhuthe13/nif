@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Your NIF Delivery</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--void:#060608;--surface:#12121a;--rim:rgba(255,255,255,0.07);--rim2:rgba(255,255,255,0.12);
+  --text:#f0eff0;--muted:#72717a;--dim:#2a2a35;--violet:#7b5ef8;--cyan:#2edcdc;
+  --font:'Instrument Sans',sans-serif;}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--void);color:var(--text);font-family:var(--font);font-size:15px;min-height:100vh}
+
+/* BRAND HEADER */
+.brand-header{
+  padding:24px clamp(20px,5vw,60px);
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--rim);
+}
+.brand-logo{display:flex;align-items:center;gap:10px}
+.brand-logo img{height:32px;border-radius:6px;display:none}
+.brand-logo img.loaded{display:block}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.brand-from{font-size:12px;color:var(--muted);margin-top:2px}
+.expiry-badge{font-size:11px;font-weight:600;color:var(--muted);
+  background:rgba(255,255,255,.06);border:1px solid var(--rim2);
+  border-radius:100px;padding:5px 12px}
+
+/* HERO */
+.hero{padding:48px clamp(20px,5vw,60px) 32px;text-align:center}
+.hero-title{font-size:clamp(28px,5vw,48px);font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+.hero-sub{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.6}
+
+/* NIF GRID */
+.delivery-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:16px;padding:0 clamp(20px,5vw,60px) 60px;max-width:1200px;margin:0 auto;
+}
+.nif-card{
+  background:var(--surface);border:1px solid var(--rim);border-radius:16px;
+  overflow:hidden;transition:border-color .2s,transform .2s;
+}
+.nif-card:hover{border-color:var(--rim2);transform:translateY(-2px)}
+.nif-thumb{
+  height:200px;background:linear-gradient(135deg,rgba(123,94,248,.1),var(--surface));
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+}
+.nif-thumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.nif-thumb-icon{font-size:56px;opacity:.2}
+.nif-info{padding:16px}
+.nif-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.nif-meta{font-size:11px;color:var(--muted);margin-bottom:14px}
+.nif-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-view{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--violet);color:#fff;font-size:12px;font-weight:600;
+  padding:8px 16px;border-radius:8px;text-decoration:none;transition:opacity .15s;
+  font-family:var(--font);
+}
+.btn-view:hover{opacity:.85}
+.btn-dl{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.06);color:var(--muted);font-size:12px;font-weight:600;
+  padding:8px 14px;border-radius:8px;text-decoration:none;border:1px solid var(--rim);
+  transition:all .15s;font-family:var(--font);cursor:pointer;
+}
+.btn-dl:hover{background:rgba(255,255,255,.1);color:var(--text)}
+
+/* EXPIRED / NOT FOUND */
+.msg-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;gap:12px;text-align:center;padding:32px}
+.msg-icon{font-size:56px;opacity:.4}
+.msg-title{font-size:22px;font-weight:700}
+.msg-sub{font-size:14px;color:var(--muted);max-width:380px;line-height:1.6}
+
+/* FOOTER */
+.delivery-footer{
+  text-align:center;padding:28px;font-size:12px;color:var(--dim);
+  border-top:1px solid var(--rim);
+}
+.delivery-footer a{color:var(--muted);text-decoration:none}
+.delivery-footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="msg-screen">
+    <div class="msg-icon">◉</div>
+    <div class="msg-title">Loading delivery…</div>
+  </div>
+</div>
+
+<script>
+const cfg    = window.NIF_CONFIG ?? {};
+const API    = cfg.apiBase ?? 'https://api.fumoca.co.za/api';
+const SBURL  = cfg.supabaseUrl ?? '';
+const SBKEY  = cfg.supabaseAnonKey ?? '';
+const sb     = supabase.createClient(SBURL, SBKEY);
+
+async function load() {
+  const token = new URLSearchParams(location.search).get('t')
+    ?? location.pathname.split('/delivery/')[1];
+
+  if (!token) return showError('No delivery link', 'This URL is invalid or incomplete.');
+
+  try {
+    const res  = await fetch(`${API}/delivery/${token}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? 'Not found');
+    render(data);
+  } catch(e) {
+    showError('Delivery not found', e.message.includes('expired')
+      ? 'This delivery link has expired. Contact the sender for a new link.'
+      : 'This link is invalid or has been removed.');
+  }
+}
+
+function render({ delivery, nifs, branding }) {
+  const daysLeft = Math.max(0, Math.ceil((new Date(delivery.expires_at) - Date.now()) / 86400000));
+  const expired  = daysLeft === 0;
+
+  if (expired) {
+    return showError('Delivery expired', 'This delivery link has expired. Contact the sender for a new link.');
+  }
+
+  // Set page title
+  document.title = `${branding.name || 'Your'} NIF Delivery`;
+
+  document.getElementById('app').innerHTML = `
+    <div class="brand-header">
+      <div class="brand-logo">
+        ${branding.logo_url ? `<img src="${branding.logo_url}" alt="Logo" onload="this.classList.add('loaded')"/>` : ''}
+        <div>
+          <div class="brand-name">${branding.name || 'NIF Delivery'}</div>
+          <div class="brand-from">Powered by fumoca.co.za</div>
+        </div>
+      </div>
+      <div class="expiry-badge">Expires in ${daysLeft} day${daysLeft!==1?'s':''}</div>
+    </div>
+
+    <div class="hero">
+      <h1 class="hero-title">${delivery.title || 'Your captures are ready'}</h1>
+      <p class="hero-sub">${delivery.message || 'Tap any NIF to explore it in 4D, or download the video and print files.'}</p>
+    </div>
+
+    <div class="delivery-grid">
+      ${nifs.map(n => `
+        <div class="nif-card">
+          <div class="nif-thumb">
+            ${n.thumbnail_url ? `<img src="${n.thumbnail_url}" alt="${n.title}"/>` : ''}
+            <span class="nif-thumb-icon">${{property:'🏠',automotive:'🚗',fashion:'👗',mining:'⛏️',agriculture:'🌾',education:'📚'}[n.vertical]||'✦'}</span>
+          </div>
+          <div class="nif-info">
+            <div class="nif-title">${n.title || 'Untitled NIF'}</div>
+            <div class="nif-meta">${n.vertical} · ${fmtDate(n.created_at)}</div>
+            <div class="nif-actions">
+              <a href="/view/${n.id}" class="btn-view" target="_blank">
+                ▶ Explore in 4D
+              </a>
+              ${n.proxy_video_url ? `
+                <a href="${n.proxy_video_url}" download="${n.title||'nif'}-video.mp4" class="btn-dl">
+                  ↓ Video
+                </a>` : ''}
+              ${n.print_stl_url ? `
+                <a href="${n.print_stl_url}" download="${n.title||'nif'}.stl" class="btn-dl">
+                  ↓ STL
+                </a>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="delivery-footer">
+      Delivered via <a href="https://fumoca.co.za" target="_blank">fumoca.co.za</a>
+      · NIF — Neural Interactive Format · © Fumoca Technologies
+    </div>
+  `;
+}
+
+function showError(title, sub) {
+  document.getElementById('app').innerHTML = `
+    <div class="msg-screen">
+      <div class="msg-icon">◌</div>
+      <div class="msg-title">${title}</div>
+      <div class="msg-sub">${sub}</div>
+      <a href="https://fumoca.co.za" style="color:var(--violet);font-size:14px;margin-top:8px;">
+        fumoca.co.za
+      </a>
+    </div>
+  `;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-ZA', { day:'numeric', month:'short', year:'numeric' });
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NIF Compare · fumoca.co.za</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="/config.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#060608;--rim:rgba(255,255,255,0.08);--rim2:rgba(255,255,255,0.15);
+  --text:#f0eff0;--muted:#72717a;--violet:#7b5ef8;--cyan:#2edcdc;
+  --font:'Instrument Sans',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--void);font-family:var(--font);color:var(--text)}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;height:48px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  background:rgba(6,6,8,.9);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--rim);
+}
+.nav-logo{font-size:16px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.nav-logo-dot{width:7px;height:7px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet)}
+.nav-sync{font-size:11px;font-weight:600;color:var(--muted);
+  background:rgba(255,255,255,.06);border:1px solid var(--rim2);
+  border-radius:100px;padding:5px 14px;cursor:pointer;transition:all .15s}
+.nav-sync.active{color:var(--cyan);border-color:rgba(46,220,220,.4);background:rgba(46,220,220,.08)}
+.nav-back{font-size:13px;color:var(--muted);text-decoration:none;transition:color .15s}
+.nav-back:hover{color:var(--text)}
+
+/* COMPARE LAYOUT */
+.compare-wrap{
+  position:fixed;top:48px;left:0;right:0;bottom:0;
+  display:flex;overflow:hidden;
+}
+
+/* Each pane */
+.pane{
+  flex:1;position:relative;overflow:hidden;
+  transition:flex .0s; /* instant — drag handles this */
+}
+.pane-label{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
+  border:1px solid var(--rim2);border-radius:100px;
+  padding:5px 14px;font-size:11px;font-weight:600;color:#fff;
+  pointer-events:none;white-space:nowrap;max-width:200px;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.pane iframe{width:100%;height:100%;border:none;display:block}
+
+/* Divider handle */
+.divider{
+  width:4px;flex-shrink:0;background:var(--violet);
+  cursor:col-resize;position:relative;z-index:50;
+  transition:background .15s;
+}
+.divider:hover,.divider.dragging{background:var(--cyan);width:6px}
+.divider-handle{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:28px;height:48px;border-radius:14px;
+  background:rgba(123,94,248,.9);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;cursor:col-resize;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+
+/* Empty state — no NIFs selected */
+.pane-empty{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  background:var(--void);
+  padding:32px;text-align:center;
+}
+.pane-empty-icon{font-size:48px;opacity:.25}
+.pane-empty-title{font-size:16px;font-weight:700}
+.pane-empty-sub{font-size:13px;color:var(--muted);max-width:240px;line-height:1.6}
+.btn-pick{
+  background:var(--violet);color:#fff;border:none;
+  border-radius:9px;padding:10px 24px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:var(--font);margin-top:4px;
+}
+
+/* Picker modal */
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);
+  backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal{
+  background:#12121a;border:1px solid var(--rim2);border-radius:16px;
+  width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:24px;
+}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.nif-pick-item{
+  display:flex;align-items:center;gap:10px;padding:10px;
+  border-radius:8px;cursor:pointer;transition:background .15s;margin-bottom:4px;
+}
+.nif-pick-item:hover{background:rgba(255,255,255,.06)}
+.nif-pick-icon{font-size:22px;width:36px;text-align:center;flex-shrink:0}
+.nif-pick-title{font-size:13px;font-weight:600}
+.nif-pick-meta{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><div class="nav-logo-dot"></div>NIF COMPARE</div>
+  <button id="sync-btn" class="nav-sync active" onclick="toggleSync()">⟳ Sync cameras</button>
+  <a href="/dashboard" class="nav-back">← Dashboard</a>
+</nav>
+
+<div class="compare-wrap" id="compare-wrap">
+  <!-- Left pane -->
+  <div class="pane" id="pane-a">
+    <div class="pane-label" id="label-a">Left</div>
+    <div class="pane-empty" id="empty-a">
+      <div class="pane-empty-icon">◉</div>
+      <div class="pane-empty-title">Select a NIF</div>
+      <div class="pane-empty-sub">Choose a NIF file to display on the left side</div>
+      <button class="btn-pick" onclick="openPicker('a')">Choose NIF →</button>
+    </div>
+    <iframe id="iframe-a" src="about:blank" style="display:none" allow="camera;microphone;autoplay"></iframe>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider" id="divider">
+    <div class="divider-handle">⇔</div>
+  </div>
+
+  <!-- Right pane -->
+  <div class="pane" id="pane-b">
+    <div class="pane-label" id="label-b">Right</div>
+    <div class="pane-empty" id="empty-b">
+      <div class="pane-empty-icon">◉</div>
+      <div class="pane-empty-title">Select a NIF</div>
+      <div class="pane-empty-sub">Choose a NIF file to display on the right side</div>
+      <button class="btn-pick" onclick="openPicker('b')">Choose NIF →</button>
+    </div>
+    <iframe id="iframe-b" src="about:blank" style="display:none" allow="camera;microphone;autoplay"></iframe>
+  </div>
+</div>
+
+<script>
+const cfg   = window.NIF_CONFIG ?? {};
+const API   = cfg.apiBase ?? 'https://api.fumoca.co.za/api';
+
+let syncEnabled = true;
+let dragging    = false;
+let paneAFlex   = 1;
+let paneBFlex   = 1;
+
+// ── URL params — ?a={id}&b={id} ──────────────────────────────────────────────
+(function() {
+  const p = new URLSearchParams(location.search);
+  const a = p.get('a'), b = p.get('b');
+  if (a) loadNIF('a', a);
+  if (b) loadNIF('b', b);
+})();
+
+// ── Load NIF into a pane ──────────────────────────────────────────────────────
+async function loadNIF(pane, nifId) {
+  const empty  = document.getElementById(`empty-${pane}`);
+  const iframe = document.getElementById(`iframe-${pane}`);
+  const label  = document.getElementById(`label-${pane}`);
+
+  // Fetch NIF metadata for label
+  try {
+    const res  = await fetch(`${API}/nif/${nifId}`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    if (res.ok) {
+      const nif = await res.json();
+      label.textContent = nif.title || nifId.slice(0,8) + '…';
+    }
+  } catch {}
+
+  // Load the viewer in the iframe
+  // Pass ?compare=1 so the viewer knows to skip the tap-to-start
+  iframe.src = `/view/${nifId}?compare=1&embed=1`;
+  iframe.style.display = 'block';
+  empty.style.display  = 'none';
+
+  // Update URL so the comparison is shareable
+  const p = new URLSearchParams(location.search);
+  p.set(pane, nifId);
+  history.replaceState(null, '', `?${p.toString()}`);
+
+  // Wire camera sync once both iframes are loaded
+  iframe.onload = () => {
+    if (syncEnabled) wireSync();
+  };
+}
+
+// ── Camera sync ───────────────────────────────────────────────────────────────
+// Broadcasts orbit events from one viewer to the other via postMessage.
+// The NIF viewer listens for { type:'nif:camera', position, target, up } messages
+// and applies the camera state without re-broadcasting.
+
+let _syncBlock = false;
+
+function wireSync() {
+  const ia = document.getElementById('iframe-a');
+  const ib = document.getElementById('iframe-b');
+
+  window.addEventListener('message', (e) => {
+    if (!syncEnabled || _syncBlock) return;
+    if (e.data?.type !== 'nif:camera') return;
+
+    _syncBlock = true;
+    // Forward to the OTHER iframe
+    const source   = e.source;
+    const targetFr = source === ia?.contentWindow ? ib?.contentWindow
+                                                   : ia?.contentWindow;
+    if (targetFr) {
+      targetFr.postMessage({ type:'nif:camera:sync', ...e.data }, '*');
+    }
+    setTimeout(() => { _syncBlock = false; }, 16);
+  });
+}
+
+function toggleSync() {
+  syncEnabled = !syncEnabled;
+  const btn = document.getElementById('sync-btn');
+  btn.textContent = syncEnabled ? '⟳ Sync cameras' : '⟳ Sync off';
+  btn.classList.toggle('active', syncEnabled);
+}
+
+// ── Divider drag ──────────────────────────────────────────────────────────────
+const divider = document.getElementById('divider');
+const wrap    = document.getElementById('compare-wrap');
+
+divider.addEventListener('mousedown', startDrag);
+divider.addEventListener('touchstart', e => startDrag(e.touches[0]), { passive:true });
+
+function startDrag(e) {
+  dragging = true;
+  divider.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor     = 'col-resize';
+}
+
+window.addEventListener('mousemove', onDrag);
+window.addEventListener('touchmove', e => onDrag(e.touches[0]), { passive:true });
+
+function onDrag(e) {
+  if (!dragging) return;
+  const rect   = wrap.getBoundingClientRect();
+  const x      = e.clientX - rect.left;
+  const total  = rect.width - 6; // 6px for divider
+  const pctA   = Math.max(0.15, Math.min(0.85, x / total));
+  document.getElementById('pane-a').style.flex = pctA;
+  document.getElementById('pane-b').style.flex = 1 - pctA;
+}
+
+window.addEventListener('mouseup', stopDrag);
+window.addEventListener('touchend', stopDrag);
+
+function stopDrag() {
+  if (!dragging) return;
+  dragging = false;
+  divider.classList.remove('dragging');
+  document.body.style.userSelect = '';
+  document.body.style.cursor     = '';
+}
+
+// ── NIF picker modal ──────────────────────────────────────────────────────────
+let _pickerTarget = null;
+
+async function openPicker(pane) {
+  _pickerTarget = pane;
+  const token = getToken();
+  if (!token) {
+    const id = prompt('Enter NIF ID to compare:');
+    if (id) loadNIF(pane, id.trim());
+    return;
+  }
+
+  // Load user's NIFs
+  let nifs = [];
+  try {
+    const res = await fetch(`${API}/nif`, { headers:{Authorization:`Bearer ${token}`} });
+    const d   = await res.json();
+    nifs = d.files ?? d ?? [];
+  } catch {}
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="modal-title">Select NIF — ${pane === 'a' ? 'Left' : 'Right'} pane</div>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      ${nifs.length ? nifs.map(n => `
+        <div class="nif-pick-item" onclick="pickNIF('${n.id}');this.closest('.modal-overlay').remove()">
+          <div class="nif-pick-icon">${{property:'🏠',automotive:'🚗',fashion:'👗',mining:'⛏️',agriculture:'🌾',education:'📚'}[n.vertical]||'✦'}</div>
+          <div>
+            <div class="nif-pick-title">${n.title||'Untitled NIF'}</div>
+            <div class="nif-pick-meta">${n.vertical} · ${n.id.slice(0,8)}</div>
+          </div>
+        </div>
+      `).join('') : `<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">No NIF files found. <a href="/dashboard" style="color:var(--violet)">Upload one →</a></div>`}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function pickNIF(nifId) {
+  if (_pickerTarget) loadNIF(_pickerTarget, nifId);
+}
+
+function getToken() {
+  // Try sessionStorage (set by dashboard during current session)
+  const sess = sessionStorage.getItem('nif_token');
+  if (sess) return sess;
+  // Try localStorage (set by feed/viewer pages)
+  const local = localStorage.getItem('nif_token');
+  if (local) return local;
+  // Try Supabase persisted session key (supabase-js v2 format)
+  try {
+    const sbKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
+    if (sbKey) {
+      const parsed = JSON.parse(localStorage.getItem(sbKey) ?? '{}');
+      return parsed?.access_token ?? null;
+    }
+  } catch {}
+  return null;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+# NIF Platform — Cloudflare Pages HTTP headers
+# fumoca.co.za · © Fumoca Technologies
+
+# ── Global security ────────────────────────────────────────────────────────────
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-XSS-Protection: 1; mode=block
+
+# ── Pages that must NOT be framed (dashboard, auth-protected areas) ────────────
+/dashboard
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+/dashboard/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+/editor
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+/editor/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+/print
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+/capture
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+
+# ── Viewer: CAN be framed (compare viewer, external embeds) ───────────────────
+# Allow framing from fumoca.co.za itself (compare page) and any external site
+# that has a licensed embed. The embed SDK uses script injection (not iframe)
+# but the compare viewer uses iframes, so this must be open.
+/view/*
+  Content-Security-Policy: frame-ancestors *
+  Access-Control-Allow-Origin: *
+
+/feed
+  Content-Security-Policy: frame-ancestors 'self'
+
+/compare
+  Content-Security-Policy: frame-ancestors 'self'
+
+# ── Embed SDK — must load from any website ────────────────────────────────────
+/sdk/embed/nif-viewer.js
+  Content-Type: application/javascript
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/sdk/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=86400
+
+# ── NIF spec reader (developers loading from their own sites) ─────────────────
+/core/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+
+# ── Service worker — never cache ──────────────────────────────────────────────
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# ── Config — never cache (credentials) ───────────────────────────────────────
+/config.js
+  Cache-Control: no-store, no-cache
+
+# ── Manifest ──────────────────────────────────────────────────────────────────
+/manifest.json
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=86400

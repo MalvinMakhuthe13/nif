@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover"/>
+<title>NIF Viewer · fumoca.co.za</title>
+<meta id="og-title"       property="og:title"       content="NIF · fumoca.co.za"/>
+<meta id="og-description" property="og:description" content="Interactive 4D scene"/>
+<meta name="twitter:card" content="player"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<script src="../../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--bg2:#0c0c12;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f0f8;--text2:#8888aa;--text3:#44445a;
+  --accent:#7c6dfa;--accent2:#a594ff;--green:#3ddc97;--red:#ff5566;
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:#000;color:var(--text);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── Viewer wrap ─────────────────────────────────────────────────────────────*/
+.viewer-wrap{position:fixed;inset:0;background:#000}
+#nif-canvas{width:100%;height:100%;display:block;touch-action:none}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+.top-bar{
+  position:absolute;top:0;left:0;right:0;padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.7),transparent);
+  z-index:10;pointer-events:none;
+}
+.top-left{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.back-btn{
+  width:32px;height:32px;border-radius:7px;
+  background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);
+  border:0.5px solid rgba(255,255,255,0.15);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;transition:background 0.15s;
+  text-decoration:none;
+}
+.back-btn:hover{background:rgba(255,255,255,0.2)}
+.nif-title{font-size:13px;font-weight:700;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nif-badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap}
+.top-right{display:flex;gap:5px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.top-btn{
+  padding:5px 10px;border-radius:7px;
+  background:rgba(255,255,255,0.1);backdrop-filter:blur(6px);
+  border:0.5px solid rgba(255,255,255,0.15);color:#fff;
+  font-family:var(--font);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.top-btn:hover{background:rgba(255,255,255,0.2)}
+.top-btn.active{background:rgba(124,109,250,0.3);border-color:rgba(124,109,250,0.5)}
+
+/* ── Bottom bar ───────────────────────────────────────────────────────────── */
+.bottom-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  background:linear-gradient(to top,rgba(0,0,0,0.75),transparent);
+  z-index:10;
+}
+.mode-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.mode-btn{
+  padding:4px 11px;border-radius:999px;
+  border:0.5px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.07);backdrop-filter:blur(4px);
+  color:rgba(255,255,255,0.65);font-family:var(--font);font-size:10px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;
+}
+.mode-btn.active,.mode-btn:hover{background:rgba(124,109,250,0.25);border-color:rgba(124,109,250,0.5);color:#fff}
+
+.controls-row{display:flex;align-items:center;gap:8px}
+
+/* Play/pause button */
+.ctrl-btn{
+  width:28px;height:28px;border-radius:7px;flex-shrink:0;
+  background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.15);
+  color:#fff;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.ctrl-btn:hover{background:rgba(255,255,255,0.2)}
+.ctrl-btn.active{background:rgba(124,109,250,0.3);border-color:rgba(124,109,250,0.5)}
+
+/* FREEZE button — distinct */
+.freeze-btn{
+  padding:5px 13px;border-radius:7px;flex-shrink:0;
+  background:rgba(124,109,250,0.15);
+  border:0.5px solid rgba(124,109,250,0.4);
+  color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:5px;
+  letter-spacing:0.04em;
+}
+.freeze-btn:hover{background:rgba(124,109,250,0.3)}
+.freeze-btn.frozen{background:rgba(255,85,102,0.2);border-color:rgba(255,85,102,0.5);color:#ff7788}
+
+/* Timeline scrubber */
+.scrubber-wrap{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
+.scrubber{
+  flex:1;height:3px;appearance:none;-webkit-appearance:none;
+  background:rgba(255,255,255,0.2);border-radius:2px;
+  outline:none;cursor:pointer;
+}
+.scrubber::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;
+  border-radius:50%;background:#fff;cursor:pointer;
+  box-shadow:0 0 4px rgba(0,0,0,0.4);
+}
+.scrubber::-moz-range-thumb{
+  width:11px;height:11px;border-radius:50%;background:#fff;cursor:pointer;border:none;
+}
+.time-lbl{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,0.45);min-width:36px;text-align:right}
+.dur-lbl {font-size:10px;font-family:var(--mono);color:rgba(255,255,255,0.3) ;min-width:36px}
+
+/* ── Side panels ──────────────────────────────────────────────────────────── */
+.side-panel{
+  position:absolute;top:52px;right:12px;width:246px;
+  background:rgba(10,10,16,0.93);backdrop-filter:blur(18px);
+  border:0.5px solid var(--border2);border-radius:14px;overflow:hidden;
+  z-index:20;transform:translateX(270px);transition:transform 0.26s cubic-bezier(.4,0,.2,1);
+}
+.side-panel.open{transform:translateX(0)}
+.sp-head{padding:11px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2)}
+.sp-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:2px}
+.sp-body{padding:14px}
+.sp-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:11px}
+.sp-row:last-child{border:none}
+.sp-key{color:var(--text2)}
+.sp-val{font-family:var(--mono);font-size:10px;color:var(--text)}
+.share-input{
+  background:rgba(255,255,255,0.04);border:0.5px solid var(--border);
+  border-radius:6px;padding:8px 10px;font-size:10px;font-family:var(--mono);
+  color:var(--text2);display:flex;align-items:center;gap:7px;
+  cursor:pointer;transition:border-color 0.15s;word-break:break-all;
+}
+.share-input:hover{border-color:var(--border2)}
+.share-socials{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.ss-btn{
+  padding:8px;border-radius:7px;border:0.5px solid var(--border);
+  background:transparent;color:var(--text2);font-family:var(--font);
+  font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:6px;width:100%;
+}
+.ss-btn:hover{background:rgba(255,255,255,0.05);color:var(--text)}
+.embed-block{
+  background:rgba(255,255,255,0.03);border-radius:7px;padding:10px;
+  font-size:9px;font-family:var(--mono);color:var(--text2);
+  word-break:break-all;cursor:pointer;border:0.5px solid var(--border);
+  margin-top:10px;line-height:1.6;
+}
+.embed-block:hover{border-color:var(--border2)}
+
+/* ── Stream input panel ───────────────────────────────────────────────────── */
+#stream-panel .sp-body{display:flex;flex-direction:column;gap:10px}
+.stream-source-btn{
+  padding:10px 12px;border-radius:8px;border:0.5px solid var(--border);
+  background:rgba(255,255,255,0.03);color:var(--text2);font-family:var(--font);
+  font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+}
+.stream-source-btn:hover{background:rgba(255,255,255,0.07);color:var(--text);border-color:var(--border2)}
+.stream-source-btn.active{background:rgba(124,109,250,0.1);border-color:var(--accent);color:var(--accent2)}
+.stream-input-row{display:flex;gap:6px}
+.stream-url-input{
+  flex:1;background:rgba(255,255,255,0.05);border:0.5px solid var(--border);
+  color:var(--text);padding:7px 10px;border-radius:7px;
+  font-family:var(--mono);font-size:11px;outline:none;
+}
+.stream-url-input:focus{border-color:var(--accent)}
+.stream-url-btn{
+  padding:7px 12px;border-radius:7px;background:var(--accent);color:#fff;
+  border:none;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;
+}
+.stream-status{font-size:11px;padding:6px 10px;border-radius:6px;display:none}
+.stream-status.ok{background:rgba(61,220,151,0.1);color:var(--green);display:block}
+.stream-status.err{background:rgba(255,85,102,0.1);color:var(--red);display:block}
+
+/* ── Overlays ─────────────────────────────────────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px;z-index:100;transition:opacity 0.4s;
+}
+.overlay.hidden{opacity:0;pointer-events:none}
+.ring{
+  width:52px;height:52px;border:2px solid rgba(255,255,255,0.06);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.7s linear infinite;margin-bottom:18px;
+}
+.load-text{font-size:11px;color:var(--text3);letter-spacing:0.15em;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
+.load-bar{width:180px;height:2px;background:rgba(255,255,255,0.06);border-radius:1px;overflow:hidden}
+.load-fill{height:100%;background:var(--accent);border-radius:1px;transition:width 0.4s}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Freeze status badge ──────────────────────────────────────────────────── */
+.freeze-indicator{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(10,10,18,0.85);backdrop-filter:blur(12px);
+  border:0.5px solid rgba(124,109,250,0.4);border-radius:12px;
+  padding:12px 20px;font-family:var(--font);font-size:13px;font-weight:700;
+  color:#fff;display:flex;align-items:center;gap:8px;
+  pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:15;
+}
+.freeze-indicator.show{opacity:1}
+.freeze-indicator .fi-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="overlay" id="loader">
+  <div class="ring"></div>
+  <div class="load-text" id="load-text">Fetching NIF…</div>
+  <div class="load-bar"><div class="load-fill" id="load-fill" style="width:0%"></div></div>
+</div>
+
+<!-- Error -->
+<div class="overlay hidden" id="error-overlay">
+  <div style="font-size:48px;margin-bottom:16px;opacity:0.3">◉</div>
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">Unable to load NIF</div>
+  <div id="error-msg" style="font-size:13px;color:var(--text2);margin-bottom:24px;max-width:320px"></div>
+  <a href="/" style="padding:10px 24px;background:var(--accent);color:#fff;border-radius:999px;font-size:13px;font-weight:600">Go home →</a>
+</div>
+
+<!-- Main viewer -->
+<div class="viewer-wrap" id="viewer" style="visibility:hidden">
+  <canvas id="nif-canvas"></canvas>
+
+  <!-- Freeze indicator -->
+  <div class="freeze-indicator" id="freeze-indicator">
+    <span class="fi-dot"></span>
+    <span id="fi-text">Freeze frame</span>
+  </div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-left">
+      <a href="/" class="back-btn" title="Back">←</a>
+      <div>
+        <div class="nif-title" id="nif-title"></div>
+        <div class="nif-badge" id="nif-badge"></div>
+      </div>
+    </div>
+    <div class="top-right">
+      <!-- Freeze frame — the star feature -->
+      <button class="top-btn active" id="freeze-top-btn" onclick="handleFreezeBtn()" title="Freeze frame (Space / F)">
+        ❄ Freeze
+      </button>
+      <!-- Live stream input -->
+      <button class="top-btn" onclick="togglePanel('stream-panel')" title="Connect live stream or camera">
+        📡 Stream
+      </button>
+      <button class="top-btn" onclick="togglePanel('info-panel')">ℹ Info</button>
+      <button class="top-btn" onclick="togglePanel('share-panel')">↗ Share</button>
+      <button class="top-btn" onclick="toggleFS()" title="Fullscreen (F11)">⛶</button>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <div class="mode-row" id="mode-row"></div>
+    <!-- Layer selector — shown when NIF has multiple layers -->
+    <div class="mode-row" id="layer-row" style="display:none"></div>
+    <div class="controls-row">
+      <!-- Play / Pause -->
+      <button class="ctrl-btn" id="play-btn" onclick="handlePlayPause()" title="Play / Pause (K)">▶</button>
+      <!-- Step back / forward (video only) -->
+      <button class="ctrl-btn" id="step-back"    onclick="stepFrame(-1)"  title="Step back one frame (,)">◂</button>
+      <button class="ctrl-btn" id="step-forward" onclick="stepFrame( 1)"  title="Step forward one frame (.)">▸</button>
+      <!-- Freeze frame button in bottom bar too -->
+      <button class="freeze-btn" id="freeze-btn" onclick="handleFreezeBtn()" title="Freeze + inspect (Space / F)">
+        ❄ Freeze
+      </button>
+      <!-- Timeline -->
+      <div class="scrubber-wrap">
+        <span class="dur-lbl" id="dur-lbl">0:00</span>
+        <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0"
+          oninput="handleScrub(this.value)"
+          onmousedown="startScrubbing()"
+          onmouseup="endScrubbing()"
+          ontouchstart="startScrubbing()"
+          ontouchend="endScrubbing()"/>
+        <span class="time-lbl" id="time-lbl">0:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info panel -->
+  <div class="side-panel" id="info-panel">
+    <div class="sp-head"><span class="sp-title">NIF Details</span><button class="sp-close" onclick="closePanel('info-panel')">✕</button></div>
+    <div class="sp-body" id="info-body"></div>
+  </div>
+
+  <!-- Share panel -->
+  <div class="side-panel" id="share-panel">
+    <div class="sp-head"><span class="sp-title">Share</span><button class="sp-close" onclick="closePanel('share-panel')">✕</button></div>
+    <div class="sp-body" id="share-body"></div>
+  </div>
+
+  <!-- Stream panel -->
+  <div class="side-panel" id="stream-panel">
+    <div class="sp-head"><span class="sp-title">Live Stream / Camera</span><button class="sp-close" onclick="closePanel('stream-panel')">✕</button></div>
+    <div id="stream-panel-body" class="sp-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Connect a camera or live stream, then freeze any frame to inspect it in 4D.</div>
+      <button class="stream-source-btn" id="btn-webcam" onclick="connectWebcam()">📷 My webcam</button>
+      <button class="stream-source-btn" id="btn-screen" onclick="connectScreen()">🖥 Screen capture</button>
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:8px 0 4px">Or paste a stream URL</div>
+      <div class="stream-input-row">
+        <input class="stream-url-input" id="stream-url" type="url" placeholder="https://… or rtsp://…"/>
+        <button class="stream-url-btn" onclick="connectURL()">Go</button>
+      </div>
+      <div class="stream-status" id="stream-status"></div>
+      <button class="stream-source-btn" id="btn-disconnect" onclick="disconnectStream()" style="display:none;border-color:rgba(255,85,102,0.3);color:var(--red)">⊗ Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { NIFViewer }        from '/viewer/src/NIFViewer.js';
+import { NIFFreezeInspect } from '/viewer/src/NIFFreezeInspect.js';
+
+const SB_URL = (window.NIF_CONFIG?.supabaseUrl) ?? 'https://toujfhriwgcpsqmqrqar.supabase.co';
+const SB_KEY = (window.NIF_CONFIG?.supabaseAnonKey) ?? 'sb_publishable_vYSpMZ91mf_uf6OPjZYbKA_5TInoYH-';
+const sb     = supabase.createClient(SB_URL, SB_KEY);
+const API     = (window.NIF_CONFIG?.apiBase) ?? 'https://api.fumoca.co.za/api';
+const NIF_API = API;
+
+
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let viewer      = null;
+let inspector   = null;
+let nifMeta     = null;
+let mediaStream = null;
+let isScrubbing = false;
+let _openPanel  = null;
+let videoEl     = null; // proxy video element reference
+
+const VERTICALS = {
+  automotive:{ label:'Automotive', color:'#ffaa44', icon:'🚗', modes:['Orbit','Walk','Inspect'] },
+  fashion:   { label:'Fashion',    color:'#f06aff', icon:'👗', modes:['Orbit','Turntable','Try On'] },
+  property:  { label:'Property',   color:'#3ddc97', icon:'🏠', modes:['Walk','Orbit','Measure'] },
+  mining:    { label:'Mining',     color:'#ffcc44', icon:'⛏️', modes:['Fly','Orbit','Measure'] },
+  agriculture:{ label:'Agriculture',color:'#6ddc7c', icon:'🌾', modes:['Fly','Orbit','Health Map'] },
+  generic:   { label:'NIF',        color:'#a594ff', icon:'✦',  modes:['Orbit','Walk','Fly'] },
+};
+
+// ─── Boot ─────────────────────────────────────────────────────────────────
+async function main() {
+  const nifId   = getNifId();
+  if (!nifId) { showError('No NIF ID in URL. Expected /view/:id or ?id=:id'); return; }
+
+  setLoad(15, 'Authenticating…');
+  const { data: { session } } = await sb.auth.getSession();
+  const token   = session?.access_token ?? null;
+  const license = new URLSearchParams(location.search).get('license');
+
+  setLoad(30, 'Fetching NIF…');
+  try {
+    const h = {}; if (token) h['Authorization'] = `Bearer ${token}`;
+    const r = await fetch(`${API}/nif/${nifId}`, { headers: h });
+    if (!r.ok) { const e=await r.json(); showError(e.error??`Not found (${r.status})`); return; }
+    nifMeta = await r.json();
+  } catch(e) { showError('API unreachable: '+e.message); return; }
+
+  const v = VERTICALS[nifMeta.vertical] ?? VERTICALS.generic;
+  document.title = `${nifMeta.title||'NIF Scene'} · fumoca.co.za`;
+  document.getElementById('nif-title').textContent = nifMeta.title||'Untitled NIF';
+  const badge = document.getElementById('nif-badge');
+  badge.textContent = `${v.icon} ${v.label}`;
+  badge.style.cssText = `font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;background:${v.color}22;color:${v.color};border:0.5px solid ${v.color}44`;
+
+  buildModeRow(nifMeta.vertical);
+  buildInfoPanel(nifMeta);
+  buildSharePanel(nifMeta);
+
+  setLoad(50, 'Loading 4D scene…');
+
+  // Mount viewer
+  const viewerWrap = document.getElementById('viewer');
+  viewerWrap.style.visibility = 'visible';
+
+  viewer = new NIFViewer(viewerWrap, {
+    nifId, token, license: license??undefined, api: API,
+    onReady: () => {
+      document.getElementById('loader').classList.add('hidden');
+      const cvs = viewerWrap.querySelector('canvas');
+      mountInspector(cvs, 'canvas');
+      updatePlayState(true);
+      setLoad(100, 'Ready');
+
+      // Build layer selector if layers exist
+      const labels = viewer?.renderer?.layerLabels ?? [];
+      if (labels.length > 1) {
+        const row = document.getElementById('layer-row');
+        row.style.display = 'flex';
+        const allBtn = `<button class="mode-btn active" onclick="selectLayer(this,null)">✦ All</button>`;
+        const layerBtns = labels.map(l => {
+          const icon = l==='foreground'?'◈':l==='background'?'◻':l.startsWith('segment')?'⬡':'●';
+          const label = l.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+          return `<button class="mode-btn" onclick="selectLayer(this,'${l}')">${icon} ${label}</button>`;
+        }).join('');
+        row.innerHTML = allBtn + layerBtns;
+      }
+
+      // Enable parallax if depth map exists
+      if (viewer?.renderer?._depthMap) {
+        viewer.renderer.enableParallax(0.25);
+        const topRight = document.querySelector('.top-right');
+        if (topRight) {
+          const btn = document.createElement('button');
+          btn.className = 'top-btn active';
+          btn.id = 'parallax-btn';
+          btn.title = 'Depth parallax — tilt device or move mouse';
+          btn.textContent = '⬡ Parallax';
+          btn.onclick = () => {
+            const r = viewer.renderer;
+            if (r._parallaxHandler) {
+              r.disableParallax();
+              btn.classList.remove('active');
+            } else {
+              r.enableParallax(0.25);
+              btn.classList.add('active');
+            }
+          };
+          topRight.prepend(btn);
+        }
+      }
+    },
+    onError: showError,
+    onStage: (stage) => {
+      setLoad({ dissociation:60, nebula:70, crystallisation:85, solidification:95 }[stage]??60, stage+'…');
+    },
+  });
+
+  setLoad(70, 'Initialising renderer…');
+
+  // Listen for the proxy video being mounted so we can attach inspector
+  viewerWrap.addEventListener('nif:freeze',   () => updateFreezeUI(true));
+  viewerWrap.addEventListener('nif:unfreeze', () => updateFreezeUI(false));
+
+  // Look for the proxy video element after a short wait
+  // (NIFPreviewSystem creates it dynamically)
+  const waitForVideo = () => {
+    const vid = viewerWrap.querySelector('video');
+    if (vid) {
+      videoEl = vid;
+      mountInspector(vid, 'video');
+    } else {
+      setTimeout(waitForVideo, 200);
+    }
+  };
+  waitForVideo();
+
+  await viewer.load().catch(() => {});
+}
+
+// ─── Inspector mount / re-attach ───────────────────────────────────────────
+function mountInspector(el, type) {
+  if (!inspector) {
+    inspector = new NIFFreezeInspect(document.getElementById('viewer'), {
+      accentColor: '#7c6dfa',
+      pipPosition: 'bottom-right',
+      onFreeze: (imageData, timestamp) => {
+        // Notify camera sync partners
+        parent?.postMessage?.({ type:'nif:camera:freeze', timestamp }, '*');
+      },
+    });
+
+    // Listen for measurements from the inspector and save them to the API
+    document.getElementById('viewer').addEventListener('nif:measurement', async (e) => {
+      const { distance_m, pointA, pointB, label } = e.detail ?? {};
+      const nifId = new URLSearchParams(location.search).get('nif')
+        ?? location.pathname.split('/view/')[1]?.split('?')[0];
+      const token = sessionStorage.getItem('nif_token')
+        ?? localStorage.getItem('nif_token');
+
+      if (!nifId || !token || !distance_m) return;
+
+      // Show distance in viewer
+      showMeasurementToast(`${distance_m.toFixed(2)} m`);
+
+      // Save to API
+      await fetch(`${NIF_API}/nif/${nifId}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+        body: JSON.stringify({ measurements:[{ distance_m, pointA, pointB, label }] }),
+      }).catch(() => {});
+    });
+  }
+  if (type === 'video')  inspector.attachVideo(el);
+  if (type === 'canvas') inspector.attachCanvas(el);
+  if (type === 'stream') inspector.attachStream(el);
+}
+
+function showMeasurementToast(text) {
+  let el = document.getElementById('measure-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'measure-toast';
+    el.style.cssText = `
+      position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:60;
+      background:rgba(123,94,248,.9);color:#fff;
+      font-size:14px;font-weight:700;font-family:sans-serif;
+      padding:8px 20px;border-radius:100px;pointer-events:none;
+      backdrop-filter:blur(8px);letter-spacing:.02em;
+      transition:opacity .3s;
+    `;
+    document.getElementById('viewer')?.appendChild(el);
+  }
+  el.textContent = `📏 ${text}`;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// ─── Freeze frame ──────────────────────────────────────────────────────────
+window.handleFreezeBtn = () => {
+  if (!inspector) return;
+  inspector.toggleFreeze();
+};
+
+// ─── Camera sync (for /compare viewer) ─────────────────────────────────────
+// When embedded in the comparison viewer, broadcast camera state upward
+// and receive synchronized camera state from the other pane.
+const isCompare = new URLSearchParams(location.search).has('compare');
+if (isCompare) {
+  // Broadcast camera changes to parent
+  window.addEventListener('nif:camera-changed', (e) => {
+    parent?.postMessage?.({ type:'nif:camera', ...e.detail }, '*');
+  });
+  // Receive sync from parent — apply to the renderer
+  window.addEventListener('message', (e) => {
+    if (e.data?.type !== 'nif:camera:sync') return;
+    window.dispatchEvent(new CustomEvent('nif:apply-camera', { detail: e.data }));
+  });
+  // Apply incoming camera state to renderer
+  window.addEventListener('nif:apply-camera', (e) => {
+    const { position, target, up } = e.detail ?? {};
+    if (!position || !target) return;
+    const renderer = window._nifRenderer;
+    if (!renderer) return;
+    renderer.camera.position = [...position];
+    renderer.camera.target   = [...target];
+    if (up) renderer.camera.up = [...up];
+    renderer._movedThisFrame = true;
+    renderer.wakeUp?.();
+  });
+}
+
+function updateFreezeUI(frozen) {
+  const topBtn    = document.getElementById('freeze-top-btn');
+  const bottomBtn = document.getElementById('freeze-btn');
+  const indicator = document.getElementById('freeze-indicator');
+
+  [topBtn, bottomBtn].forEach(btn => {
+    if (!btn) return;
+    btn.classList.toggle('frozen', frozen);
+    btn.innerHTML = frozen ? '⏹ Unfreeze' : '❄ Freeze';
+  });
+
+  if (frozen) {
+    const ts = new Date().toLocaleTimeString();
+    document.getElementById('fi-text').textContent = `Frozen · ${ts}`;
+    indicator.classList.add('show');
+    setTimeout(() => indicator.classList.remove('show'), 2500);
+  }
+}
+
+// ─── Play / pause ──────────────────────────────────────────────────────────
+let _playing = false;
+
+function updatePlayState(playing) {
+  _playing = playing;
+  const btn = document.getElementById('play-btn');
+  if (btn) btn.innerHTML = playing ? '⏸' : '▶';
+}
+
+window.handlePlayPause = () => {
+  if (videoEl && !videoEl.paused && videoEl.readyState > 0) {
+    videoEl.paused ? videoEl.play() : videoEl.pause();
+    updatePlayState(!videoEl.paused);
+    return;
+  }
+      // NIF timeline toggle (if viewer is in live mode)
+  if (viewer?.state === 'live') {
+    if (_playing) viewer.renderer?.stop();
+    else          viewer.renderer?.start();
+    updatePlayState(!_playing);
+  }
+};
+
+window.stepFrame = (dir) => {
+  if (!videoEl || !isFinite(videoEl.duration)) {
+    // Flash the button to indicate no video source
+    const btn = dir < 0
+      ? document.getElementById('step-back')
+      : document.getElementById('step-forward');
+    if (btn) { btn.style.opacity='0.3'; setTimeout(()=>btn.style.opacity='',300); }
+    return;
+  }
+  videoEl.pause();
+  videoEl.currentTime = Math.max(0, Math.min(videoEl.duration, videoEl.currentTime + dir/30));
+  updatePlayState(false);
+};
+
+// ─── Timeline scrubber ─────────────────────────────────────────────────────
+let _scrubbing = false;
+
+window.startScrubbing = () => { _scrubbing = true; };
+window.endScrubbing   = () => { _scrubbing = false; };
+
+window.handleScrub = (val) => {
+  if (videoEl && videoEl.duration && isFinite(videoEl.duration)) {
+    videoEl.currentTime = (val / 1000) * videoEl.duration;
+  }
+};
+
+// Wire video timeupdate → scrubber
+function bindVideoTimeline(vid) {
+  if (!vid) return;
+  vid.addEventListener('timeupdate', () => {
+    if (_scrubbing) return;
+    const dur = vid.duration || 0;
+    const t   = dur ? vid.currentTime / dur : 0;
+    document.getElementById('scrubber').value = Math.round(t * 1000);
+    document.getElementById('time-lbl').textContent = fmtTime(vid.currentTime);
+    document.getElementById('dur-lbl') .textContent = fmtTime(dur);
+  });
+  vid.addEventListener('play',  () => updatePlayState(true));
+  vid.addEventListener('pause', () => updatePlayState(false));
+  vid.addEventListener('loadedmetadata', () => {
+    document.getElementById('dur-lbl').textContent = fmtTime(vid.duration);
+  });
+}
+
+// ─── Live stream / camera ──────────────────────────────────────────────────
+window.connectWebcam = async () => {
+  setStreamStatus('Requesting camera access…', '');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width:1920, height:1080 }, audio: false });
+    onStreamConnected(stream, 'Webcam live');
+    document.getElementById('btn-webcam').classList.add('active');
+  } catch(e) {
+    setStreamStatus('Camera denied: '+e.message, 'err');
+  }
+};
+
+window.connectScreen = async () => {
+  setStreamStatus('Select a screen or window…', '');
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
+    onStreamConnected(stream, 'Screen capture live');
+    document.getElementById('btn-screen').classList.add('active');
+  } catch(e) {
+    setStreamStatus('Screen capture cancelled', 'err');
+  }
+};
+
+window.connectURL = () => {
+  const url = document.getElementById('stream-url').value.trim();
+  if (!url) return;
+  // Create a video element for the URL stream
+  const vid = document.createElement('video');
+  vid.src         = url;
+  vid.autoplay    = true;
+  vid.muted       = true;
+  vid.playsInline = true;
+  vid.style.display = 'none';
+  document.body.appendChild(vid);
+  vid.addEventListener('loadedmetadata', () => {
+    mediaStream = null;
+    mountInspector(vid, 'video');
+    videoEl = vid;
+    bindVideoTimeline(vid);
+    setStreamStatus('Stream connected', 'ok');
+    document.getElementById('btn-disconnect').style.display = 'flex';
+  });
+  vid.addEventListener('error', () => setStreamStatus('Failed to load stream URL', 'err'));
+  vid.play().catch(() => {});
+};
+
+function onStreamConnected(stream, label) {
+  if (mediaStream) disconnectStream();
+  mediaStream = stream;
+  mountInspector(stream, 'stream');
+  setStreamStatus(label, 'ok');
+  document.getElementById('btn-disconnect').style.display = 'flex';
+  closePanel('stream-panel');
+}
+
+window.disconnectStream = () => {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+    mediaStream = null;
+  }
+  setStreamStatus('', '');
+  document.getElementById('btn-disconnect').style.display = 'none';
+  ['btn-webcam','btn-screen'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+  // Re-attach to the NIF canvas/video
+  if (videoEl) mountInspector(videoEl, 'video');
+  else if (viewer?.state === 'live') {
+    const cvs = document.getElementById('viewer').querySelector('canvas');
+    if (cvs) mountInspector(cvs, 'canvas');
+  }
+};
+
+function setStreamStatus(msg, type) {
+  const el = document.getElementById('stream-status');
+  el.textContent = msg;
+  el.className   = 'stream-status' + (type ? ' '+type : '');
+}
+
+// ─── Mode selector ─────────────────────────────────────────────────────────
+function buildModeRow(vertical) {
+  const v = VERTICALS[vertical] ?? VERTICALS.generic;
+  document.getElementById('mode-row').innerHTML = v.modes.map((m,i) => `
+    <button class="mode-btn${i===0?' active':''}" onclick="selectMode(this,'${m}')">${m}</button>
+  `).join('');
+}
+
+window.selectMode = (btn, mode) => {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  viewer?.renderer?.camera?.setMode?.({
+    'Orbit':'orbit','Walk':'walk','Fly':'fly','Turntable':'turntable',
+    'Inspect':'orbit','Measure':'orbit','Try On':'orbit',
+    'Health Map':'fly',
+  }[mode] ?? 'orbit');
+};
+
+window.selectLayer = (btn, label) => {
+  document.querySelectorAll('#layer-row .mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!viewer?.renderer) return;
+  if (label === null) {
+    viewer.renderer.showAllLayers();
+  } else {
+    viewer.renderer.setActiveLayer(label);
+  }
+};
+
+// ─── Info / Share panels ────────────────────────────────────────────────────
+function buildInfoPanel(nif) {
+  const v = VERTICALS[nif.vertical] ?? VERTICALS.generic;
+  document.getElementById('info-body').innerHTML = [
+    ['Vertical',  v.icon+' '+v.label],
+    ['Created',   fmtDate(nif.created_at)],
+    ['File size', fmtB(nif.file_size)],
+    ['Scene detail', fmtN(nif.gaussian_count) + ' depth points'],
+    ['Views',     fmtN(nif.view_count)],
+    ['Format',    'NIF v1.0'],
+    ['Producer',  'fumoca.co.za'],
+  ].map(([k,v]) => `<div class="sp-row"><span class="sp-key">${k}</span><span class="sp-val">${v}</span></div>`).join('');
+}
+
+function buildSharePanel(nif) {
+  const url   = `https://fumoca.co.za/view/${nif.id}`;
+  const embed = `<div data-nif-id="${nif.id}" style="width:100%;aspect-ratio:16/9"></div>\n<script src="https://fumoca.co.za/viewer/nif-viewer.min.js"><\/script>`;
+  document.getElementById('share-body').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px">Link</div>
+      <div class="share-input" onclick="copyText('${url}',this)">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${url}</span>
+        <span style="color:var(--accent2);flex-shrink:0">Copy</span>
+      </div>
+    </div>
+    <div class="share-socials">
+      <button class="ss-btn" onclick="shareX('${url}','${nif.title||'NIF Scene'}')">𝕏 Twitter</button>
+      <button class="ss-btn" onclick="shareWA('${url}','${nif.title||'NIF Scene'}')">💬 WhatsApp</button>
+      <button class="ss-btn" onclick="shareLI('${url}')">💼 LinkedIn</button>
+      <button class="ss-btn" onclick="copyText('${url}',this)">🔗 Copy link</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px">Embed</div>
+      <div class="embed-block" onclick="copyText(this.innerText,this)">${embed.replace(/</g,'&lt;')}</div>
+    </div>
+  `;
+}
+
+// ─── Panel toggle ───────────────────────────────────────────────────────────
+window.togglePanel = (id) => {
+  const el = document.getElementById(id);
+  if (_openPanel && _openPanel !== id) closePanel(_openPanel);
+  const open = el.classList.contains('open');
+  open ? el.classList.remove('open') : el.classList.add('open');
+  _openPanel = open ? null : id;
+};
+window.closePanel = (id) => {
+  document.getElementById(id)?.classList.remove('open');
+  if (_openPanel === id) _openPanel = null;
+};
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function getNifId() {
+  const m = location.pathname.match(/\/view\/([a-f0-9-]+)/i);
+  return m ? m[1] : new URLSearchParams(location.search).get('id');
+}
+function setLoad(pct, text) {
+  document.getElementById('load-fill').style.width = pct + '%';
+  document.getElementById('load-text').textContent = text;
+}
+function showError(msg) {
+  document.getElementById('loader').classList.add('hidden');
+  const e = document.getElementById('error-overlay');
+  document.getElementById('error-msg').textContent = msg;
+  e.classList.remove('hidden');
+}
+const fmtN    = n => Number(n||0).toLocaleString();
+const fmtDate = d => new Date(d).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+const fmtB    = b => !b?'—':b>1e9?(b/1e9).toFixed(1)+'GB':b>1e6?(b/1e6).toFixed(1)+'MB':(b/1e3).toFixed(0)+'KB';
+const fmtTime = s => { if(!s||!isFinite(s)) return '0:00'; const m=Math.floor(s/60); return `${m}:${String(Math.floor(s%60)).padStart(2,'0')}`; };
+
+window.copyText = (text, el) => {
+  navigator.clipboard.writeText(text.trim());
+  const orig = el.style.borderColor;
+  el.style.borderColor = 'var(--green)';
+  setTimeout(() => { el.style.borderColor = orig; }, 1500);
+};
+window.shareX  = (url,t) => open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t+' — explore in 4D')}&url=${encodeURIComponent(url)}`,'_blank');
+window.shareWA = (url,t) => open(`https://wa.me/?text=${encodeURIComponent(t+' '+url)}`,'_blank');
+window.shareLI = url     => open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,'_blank');
+window.toggleFS= ()      => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if (e.code==='Space'||e.code==='KeyF') { e.preventDefault(); window.handleFreezeBtn(); }
+  if (e.code==='KeyK') window.handlePlayPause();
+  if (e.code==='Comma')  window.stepFrame(-1);
+  if (e.code==='Period') window.stepFrame(1);
+  if (e.key==='f' && e.altKey) window.toggleFS();
+});
+
+main();
+</script>
+</body>
+</html>
